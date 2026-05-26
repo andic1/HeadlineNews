@@ -7,6 +7,9 @@ import com.demo.toutiao.model.LayoutType
 import com.demo.toutiao.model.NewsDto
 import com.demo.toutiao.model.NewsListResponse
 import com.demo.toutiao.repo.NewsRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -19,14 +22,17 @@ class NewsService(
 ) {
     private val log = LoggerFactory.getLogger(NewsService::class.java)
 
+    /** "推荐"频道：是否走聚合模式 */
+    private val AGGREGATE_CATEGORY = "推荐"
+
     suspend fun loadNews(
         category: String,
         page: Int,
         pageSize: Int,
         forceRefresh: Boolean,
     ): NewsListResponse {
-        // 小说/视频：直接空列表
-        if (whyta.pathForCategory(category) == null) {
+        // 无对应 whyta 端点的分类：直接空列表
+        if (category != AGGREGATE_CATEGORY && whyta.pathForCategory(category) == null) {
             return NewsListResponse(
                 category = category,
                 page = page,
@@ -47,7 +53,11 @@ class NewsService(
 
         // 调 whyta（带 1 次重试）
         val fetched = try {
-            fetchWithRetry(category, page, pageSize)
+            if (category == AGGREGATE_CATEGORY) {
+                fetchAggregate(page, pageSize)
+            } else {
+                fetchWithRetry(category, page, pageSize)
+            }
         } catch (e: Exception) {
             log.warn("whyta fetch failed: ${e.message}, fallback to stale cache")
             val stale = repo.loadPage(category, page, pageSize)
@@ -67,6 +77,31 @@ class NewsService(
             fromCache = false,
             list = dtos,
         )
+    }
+
+    /**
+     * 聚合拉取：并发调用多个频道端点，每个端点取少量条目，合并去重后打乱返回。
+     * 这样"推荐"频道就能展示来自不同媒体/频道的新闻。
+     */
+    private suspend fun fetchAggregate(page: Int, pageSize: Int): List<WhytaNewsItem> = coroutineScope {
+        val perSource = (pageSize / whyta.aggregatePaths.size).coerceAtLeast(3)
+
+        val results = whyta.aggregatePaths.map { path ->
+            async {
+                try {
+                    whyta.fetchByPath(path, page, perSource)
+                } catch (e: Exception) {
+                    log.warn("aggregate fetch failed for $path: ${e.message}")
+                    emptyList()
+                }
+            }
+        }.awaitAll()
+
+        // 合并 → 按 id 去重 → 打乱 → 截取 pageSize 条
+        results.flatten()
+            .distinctBy { it.id }
+            .shuffled()
+            .take(pageSize)
     }
 
     private suspend fun isFresh(category: String, page: Int): Boolean {

@@ -29,6 +29,7 @@ import com.demo.toutiao.ui.theme.ToutiaoRed
 fun NewsList(
     items: LazyPagingItems<NewsItem>,
     modifier: Modifier = Modifier,
+    onNewsClick: (title: String, source: String?, url: String) -> Unit = { _, _, _ -> },
 ) {
     val ptrState = rememberPullToRefreshState()
     if (ptrState.isRefreshing) {
@@ -64,7 +65,7 @@ fun NewsList(
                         count = items.itemCount,
                         key = { idx -> items.peek(idx)?.let { "${it.category}-${it.id}" } ?: idx },
                     ) { idx ->
-                        items[idx]?.let { NewsCard(it) }
+                        items[idx]?.let { NewsCard(it, onNewsClick = onNewsClick) }
                     }
                     item {
                         AppendFooter(items.loadState.append) { items.retry() }

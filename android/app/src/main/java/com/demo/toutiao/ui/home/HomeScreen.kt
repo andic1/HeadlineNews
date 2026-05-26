@@ -20,7 +20,10 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    viewModel: HomeViewModel = hiltViewModel(),
+    onNewsClick: (title: String, source: String?, url: String) -> Unit = { _, _, _ -> },
+) {
     val tabs = viewModel.categories
     val initialIndex = tabs.indexOf(Categories.DEFAULT).coerceAtLeast(0)
     val pagerState = rememberPagerState(initialPage = initialIndex) { tabs.size }
@@ -50,7 +53,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         ) { pageIndex ->
             val category = tabs[pageIndex]
             val items = viewModel.pagingFlow(category).collectAsLazyPagingItems()
-            NewsList(items = items, modifier = Modifier.fillMaxSize())
+            NewsList(items = items, modifier = Modifier.fillMaxSize(), onNewsClick = onNewsClick)
         }
     }
 }

@@ -8,7 +8,7 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-private val VALID_CATEGORIES = setOf("关注", "推荐", "热榜", "新时代", "小说", "视频")
+private val VALID_CATEGORIES = setOf("关注", "推荐", "热榜", "新时代")
 
 fun Route.newsRoutes(service: NewsService) {
     get("/api/news") {

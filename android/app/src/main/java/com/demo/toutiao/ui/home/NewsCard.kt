@@ -1,7 +1,5 @@
 package com.demo.toutiao.ui.home
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,7 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,19 +23,17 @@ import com.demo.toutiao.ui.theme.TextPrimary
 import com.demo.toutiao.ui.theme.TextSecondary
 
 @Composable
-fun NewsCard(item: NewsItem) {
-    val context = LocalContext.current
-    val openOriginal = {
-        item.originalUrl?.let { url ->
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-        }
-    }
-
+fun NewsCard(
+    item: NewsItem,
+    onNewsClick: (title: String, source: String?, url: String) -> Unit = { _, _, _ -> },
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(CardBg)
-            .clickable { openOriginal() }
+            .clickable {
+                item.originalUrl?.let { url -> onNewsClick(item.title, item.source, url) }
+            }
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
         when (item.layoutType) {

@@ -1,7 +1,7 @@
 package com.demo.toutiao.data.model
 
 object Categories {
-    val ALL = listOf("关注", "推荐", "热榜", "新时代", "小说", "视频")
+    val ALL = listOf("关注", "推荐", "热榜", "新时代")
     const val DEFAULT = "推荐"
 }
 

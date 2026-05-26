@@ -56,9 +56,20 @@ class WhytaClient(
         else -> null
     }
 
+    /** 聚合"推荐"时使用的所有端点（从多个频道混合拉取） */
+    val aggregatePaths: List<String> = listOf(
+        "/api/tx/generalnews",
+        "/api/tx/news",
+        "/api/tx/hotnews",
+        "/api/tx/topnews",
+    )
+
     suspend fun fetch(category: String, page: Int, pageSize: Int): List<WhytaNewsItem> {
         val path = pathForCategory(category) ?: return emptyList()
+        return fetchByPath(path, page, pageSize)
+    }
 
+    suspend fun fetchByPath(path: String, page: Int, pageSize: Int): List<WhytaNewsItem> {
         val resp = http.get("$baseUrl$path") {
             parameter("key", apiKey)
             parameter("num", pageSize)
