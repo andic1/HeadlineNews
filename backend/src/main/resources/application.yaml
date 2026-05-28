@@ -12,9 +12,8 @@ db:
   password: "123456"
   maxPoolSize: 8
 
-whyta:
-  baseUrl: "https://whyta.cn"
-  apiKey: "7e379d7f3330"
+hotNews:
+  baseUrl: "https://apiserver.alcex.cn"
   timeoutMs: 10000
 
 cache:

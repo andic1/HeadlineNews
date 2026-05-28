@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"http://localhost:8080/api/news?category=推荐&page=1&pageSize=5\")",
+      "Bash(curl -v \"http://localhost:8080/health\")",
+      "Bash(mysql -h 127.0.0.1 -u root -p123456 -e \"SELECT 1\")",
+      "Bash(nc -zv 127.0.0.1 3306)",
+      "Bash(nc -zv localhost 3306)",
+      "Bash(nc *)",
+      "Bash(awk '{print $2}')",
+      "Bash(xargs cat)",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "Bash(curl -s \"https://orz.ai/api/v1/dailynews/?platform=baidu\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'status={d[\\\\\"status\\\\\"]}, items={len\\(d[\\\\\"data\\\\\"]\\)}'\\); [print\\(f'  {i+1}. {x[\\\\\"title\\\\\"]} | source={x.get\\(\\\\\"source\\\\\"\\)} | url={x[\\\\\"url\\\\\"][:60]}...'\\) for i,x in enumerate\\(d['data'][:5]\\)]\")",
+      "Bash(curl -s \"https://apiserver.alcex.cn/daily-hot/zhihu\")",
+      "Bash(curl -s \"https://apiserver.alcex.cn/daily-hot/thepaper\")",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s \"https://apiserver.alcex.cn/daily-hot/toutiao\")",
+      "Bash(./gradlew compileKotlin)",
+      "Bash(awk '{print $1}')",
+      "Bash(ipconfig.exe)",
+      "Bash(./gradlew :app:compileDebugKotlin)",
+      "Read(//mnt/d/IntelliJ IDEA 2026.1.2/jbr/bin/**)",
+      "Bash(\"/mnt/d/IntelliJ IDEA 2026.1.2/jbr/bin/java\" -version)",
+      "Read(//mnt/d/bin/**)",
+      "Bash(/mnt/d/bin/java -version)",
+      "Read(//usr/**)",
+      "Read(//opt/**)",
+      "Bash(dpkg -l)",
+      "Bash(apt list *)",
+      "WebFetch(domain:blog.csdn.net)",
+      "WebFetch(domain:yuweiguocn.github.io)",
+      "WebFetch(domain:t.cj.sina.com.cn)",
+      "Bash(python3 *)",
+      "Bash(curl *)"
+    ]
+  }
+}

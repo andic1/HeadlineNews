@@ -9,6 +9,8 @@ import com.demo.toutiao.data.model.NewsItem
 import com.demo.toutiao.data.repo.NewsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
 @HiltViewModel
@@ -25,4 +27,12 @@ class HomeViewModel @Inject constructor(
         flows.getOrPut(category) {
             repo.pagingFlow(category).cachedIn(viewModelScope)
         }
+
+    /** 当前选中要查看详情的新闻 */
+    private val _selectedItem = MutableStateFlow<NewsItem?>(null)
+    val selectedItem: StateFlow<NewsItem?> = _selectedItem
+
+    fun selectItem(item: NewsItem) {
+        _selectedItem.value = item
+    }
 }

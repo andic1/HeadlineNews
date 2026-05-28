@@ -1,6 +1,7 @@
 package com.demo.toutiao;
 
 import com.demo.toutiao.di.AppModule;
+import com.demo.toutiao.ui.detail.DetailViewModel_HiltModules;
 import com.demo.toutiao.ui.home.HomeViewModel_HiltModules;
 import dagger.Binds;
 import dagger.Component;
@@ -153,6 +154,7 @@ public final class ToutiaoApp_HiltComponents {
 
   @Subcomponent(
       modules = {
+          DetailViewModel_HiltModules.KeyModule.class,
           HiltWrapper_ActivityRetainedComponentManager_LifecycleModule.class,
           HiltWrapper_SavedStateHandleModule.class,
           HomeViewModel_HiltModules.KeyModule.class,
@@ -193,6 +195,7 @@ public final class ToutiaoApp_HiltComponents {
 
   @Subcomponent(
       modules = {
+          DetailViewModel_HiltModules.BindsModule.class,
           HiltWrapper_HiltViewModelFactory_ViewModelModule.class,
           HomeViewModel_HiltModules.BindsModule.class
       }

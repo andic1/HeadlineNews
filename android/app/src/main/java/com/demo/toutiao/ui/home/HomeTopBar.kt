@@ -1,13 +1,20 @@
 package com.demo.toutiao.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -15,52 +22,83 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.demo.toutiao.ui.theme.SearchBarBg
+import com.demo.toutiao.ui.theme.TextCaption
+import com.demo.toutiao.ui.theme.TextSecondary
 import com.demo.toutiao.ui.theme.ToutiaoRed
 
-/** 红底顶栏：状态条 + 天气 + 搜索框 + 登录入口（静态） */
+/** 顶栏：Logo + 搜索框 + 通知图标 — 仿今日头条白底风格 */
 @Composable
 fun HomeTopBar() {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(ToutiaoRed)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .background(Color.White)
+            .statusBarsPadding()
+            .height(48.dp)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Logo 文字
+        Text(
+            text = "今日头条",
+            color = ToutiaoRed,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 0.5.sp,
+        )
+
+        Spacer(Modifier.width(10.dp))
+
+        // 搜索框
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .weight(1f)
+                .height(34.dp)
+                .clip(RoundedCornerShape(17.dp))
+                .background(SearchBarBg)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                ) { /* TODO: 打开搜索 */ }
+                .padding(horizontal = 12.dp),
         ) {
-            Text("9:41", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            Spacer(Modifier.weight(1f))
-            Text("14° 良", color = Color.White, fontSize = 13.sp)
+            Icon(
+                Icons.Outlined.Search,
+                contentDescription = null,
+                tint = TextCaption,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                "搜索感兴趣的内容",
+                color = TextCaption,
+                fontSize = 13.sp,
+                maxLines = 1,
+            )
         }
-        Spacer(Modifier.height(6.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+
+        // 通知入口 (带角标暗示)
+        IconButton(
+            onClick = { /* TODO */ },
+            modifier = Modifier.size(44.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(34.dp)
-                    .clip(RoundedCornerShape(17.dp))
-                    .background(Color(0xFFFFD7D7).copy(alpha = 0.4f))
-                    .padding(horizontal = 12.dp)
+            BadgedBox(
+                badge = {
+                    Badge(
+                        containerColor = ToutiaoRed,
+                        contentColor = Color.White,
+                        modifier = Modifier.size(8.dp),
+                    ) {}
+                },
             ) {
-                Icon(Icons.Default.Search, contentDescription = null, tint = Color.White)
-                Spacer(Modifier.width(6.dp))
-                Text("习近平主席重要讲话", color = Color.White, fontSize = 13.sp)
-            }
-            Spacer(Modifier.width(10.dp))
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Color.White.copy(alpha = 0.2f))
-            ) {
-                Text("A登录", color = Color.White, fontSize = 10.sp)
+                Icon(
+                    Icons.Outlined.Notifications,
+                    contentDescription = "通知",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(22.dp),
+                )
             }
         }
     }

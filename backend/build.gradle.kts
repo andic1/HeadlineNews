@@ -29,11 +29,9 @@ dependencies {
     implementation("io.ktor:ktor-server-config-yaml:$ktorVersion")
     implementation("io.ktor:ktor-server-cors-jvm:$ktorVersion")
 
-    // Ktor client (调 whyta)
+    // Ktor client
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation("io.ktor:ktor-client-cio:$ktorVersion")
-    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-client-logging:$ktorVersion")
 
     // DB
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")

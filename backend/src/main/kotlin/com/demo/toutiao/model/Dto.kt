@@ -39,7 +39,7 @@ object LayoutType {
 
 object ErrorCode {
     const val OK = 0
-    const val WHYTA_FAIL = 1001
+    const val API_FAIL = 1001
     const val BAD_PARAM = 1002
     const val INTERNAL = 1003
 }

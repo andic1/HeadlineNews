@@ -1,7 +1,6 @@
 package com.demo.toutiao
 
-import com.demo.toutiao.client.WhytaApiException
-import com.demo.toutiao.client.WhytaClient
+import com.demo.toutiao.client.HotNewsClient
 import com.demo.toutiao.db.DbConfig
 import com.demo.toutiao.db.initDatabase
 import com.demo.toutiao.model.ApiResponse
@@ -35,13 +34,12 @@ fun Application.module() {
     )
     initDatabase(dbCfg)
 
-    val whyta = WhytaClient(
-        baseUrl = environment.config.property("whyta.baseUrl").getString(),
-        apiKey = environment.config.property("whyta.apiKey").getString(),
-        timeoutMs = environment.config.property("whyta.timeoutMs").getString().toLong(),
+    val hotNews = HotNewsClient(
+        baseUrl = environment.config.property("hotNews.baseUrl").getString(),
+        timeoutMs = environment.config.property("hotNews.timeoutMs").getString().toLong(),
     )
     val ttlMinutes = environment.config.property("cache.ttlMinutes").getString().toLong()
-    val service = NewsService(NewsRepository(), whyta, ttlMinutes)
+    val service = NewsService(NewsRepository(), hotNews, ttlMinutes)
 
     install(ContentNegotiation) {
         json(Json {
@@ -55,12 +53,6 @@ fun Application.module() {
         allowHeader(HttpHeaders.ContentType)
     }
     install(StatusPages) {
-        exception<WhytaApiException> { call, cause ->
-            call.respond(
-                HttpStatusCode.OK,
-                ApiResponse<Unit>(code = ErrorCode.WHYTA_FAIL, msg = cause.message ?: "whyta error")
-            )
-        }
         exception<IllegalArgumentException> { call, cause ->
             call.respond(
                 HttpStatusCode.BadRequest,

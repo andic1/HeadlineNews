@@ -7,6 +7,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import com.demo.toutiao.data.api.NewsApi;
+import com.demo.toutiao.data.article.ArticleExtractor;
 import com.demo.toutiao.data.db.AppDatabase;
 import com.demo.toutiao.data.repo.NewsRepository;
 import com.demo.toutiao.di.AppModule_ProvideDatabaseFactory;
@@ -14,6 +15,8 @@ import com.demo.toutiao.di.AppModule_ProvideJsonFactory;
 import com.demo.toutiao.di.AppModule_ProvideNewsApiFactory;
 import com.demo.toutiao.di.AppModule_ProvideOkHttpFactory;
 import com.demo.toutiao.di.AppModule_ProvideRetrofitFactory;
+import com.demo.toutiao.ui.detail.DetailViewModel;
+import com.demo.toutiao.ui.detail.DetailViewModel_HiltModules;
 import com.demo.toutiao.ui.home.HomeViewModel;
 import com.demo.toutiao.ui.home.HomeViewModel_HiltModules;
 import dagger.hilt.android.ActivityRetainedLifecycle;
@@ -36,6 +39,7 @@ import dagger.internal.DoubleCheck;
 import dagger.internal.IdentifierNameString;
 import dagger.internal.KeepFieldType;
 import dagger.internal.LazyClassKeyMap;
+import dagger.internal.MapBuilder;
 import dagger.internal.Preconditions;
 import dagger.internal.Provider;
 import java.util.Collections;
@@ -378,7 +382,7 @@ public final class DaggerToutiaoApp_HiltComponents_SingletonC {
 
     @Override
     public Map<Class<?>, Boolean> getViewModelKeys() {
-      return LazyClassKeyMap.<Boolean>of(Collections.<String, Boolean>singletonMap(LazyClassKeyProvider.com_demo_toutiao_ui_home_HomeViewModel, HomeViewModel_HiltModules.KeyModule.provide()));
+      return LazyClassKeyMap.<Boolean>of(MapBuilder.<String, Boolean>newMapBuilder(2).put(LazyClassKeyProvider.com_demo_toutiao_ui_detail_DetailViewModel, DetailViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_demo_toutiao_ui_home_HomeViewModel, HomeViewModel_HiltModules.KeyModule.provide()).build());
     }
 
     @Override
@@ -400,8 +404,13 @@ public final class DaggerToutiaoApp_HiltComponents_SingletonC {
     private static final class LazyClassKeyProvider {
       static String com_demo_toutiao_ui_home_HomeViewModel = "com.demo.toutiao.ui.home.HomeViewModel";
 
+      static String com_demo_toutiao_ui_detail_DetailViewModel = "com.demo.toutiao.ui.detail.DetailViewModel";
+
       @KeepFieldType
       HomeViewModel com_demo_toutiao_ui_home_HomeViewModel2;
+
+      @KeepFieldType
+      DetailViewModel com_demo_toutiao_ui_detail_DetailViewModel2;
     }
   }
 
@@ -411,6 +420,8 @@ public final class DaggerToutiaoApp_HiltComponents_SingletonC {
     private final ActivityRetainedCImpl activityRetainedCImpl;
 
     private final ViewModelCImpl viewModelCImpl = this;
+
+    private Provider<DetailViewModel> detailViewModelProvider;
 
     private Provider<HomeViewModel> homeViewModelProvider;
 
@@ -427,12 +438,13 @@ public final class DaggerToutiaoApp_HiltComponents_SingletonC {
     @SuppressWarnings("unchecked")
     private void initialize(final SavedStateHandle savedStateHandleParam,
         final ViewModelLifecycle viewModelLifecycleParam) {
-      this.homeViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 0);
+      this.detailViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 0);
+      this.homeViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 1);
     }
 
     @Override
     public Map<Class<?>, javax.inject.Provider<ViewModel>> getHiltViewModelMap() {
-      return LazyClassKeyMap.<javax.inject.Provider<ViewModel>>of(Collections.<String, javax.inject.Provider<ViewModel>>singletonMap(LazyClassKeyProvider.com_demo_toutiao_ui_home_HomeViewModel, ((Provider) homeViewModelProvider)));
+      return LazyClassKeyMap.<javax.inject.Provider<ViewModel>>of(MapBuilder.<String, javax.inject.Provider<ViewModel>>newMapBuilder(2).put(LazyClassKeyProvider.com_demo_toutiao_ui_detail_DetailViewModel, ((Provider) detailViewModelProvider)).put(LazyClassKeyProvider.com_demo_toutiao_ui_home_HomeViewModel, ((Provider) homeViewModelProvider)).build());
     }
 
     @Override
@@ -444,8 +456,13 @@ public final class DaggerToutiaoApp_HiltComponents_SingletonC {
     private static final class LazyClassKeyProvider {
       static String com_demo_toutiao_ui_home_HomeViewModel = "com.demo.toutiao.ui.home.HomeViewModel";
 
+      static String com_demo_toutiao_ui_detail_DetailViewModel = "com.demo.toutiao.ui.detail.DetailViewModel";
+
       @KeepFieldType
       HomeViewModel com_demo_toutiao_ui_home_HomeViewModel2;
+
+      @KeepFieldType
+      DetailViewModel com_demo_toutiao_ui_detail_DetailViewModel2;
     }
 
     private static final class SwitchingProvider<T> implements Provider<T> {
@@ -469,7 +486,10 @@ public final class DaggerToutiaoApp_HiltComponents_SingletonC {
       @Override
       public T get() {
         switch (id) {
-          case 0: // com.demo.toutiao.ui.home.HomeViewModel 
+          case 0: // com.demo.toutiao.ui.detail.DetailViewModel 
+          return (T) new DetailViewModel(singletonCImpl.articleExtractorProvider.get());
+
+          case 1: // com.demo.toutiao.ui.home.HomeViewModel 
           return (T) new HomeViewModel(singletonCImpl.newsRepositoryProvider.get());
 
           default: throw new AssertionError(id);
@@ -554,6 +574,8 @@ public final class DaggerToutiaoApp_HiltComponents_SingletonC {
 
     private Provider<OkHttpClient> provideOkHttpProvider;
 
+    private Provider<ArticleExtractor> articleExtractorProvider;
+
     private Provider<Json> provideJsonProvider;
 
     private Provider<Retrofit> provideRetrofitProvider;
@@ -572,12 +594,13 @@ public final class DaggerToutiaoApp_HiltComponents_SingletonC {
 
     @SuppressWarnings("unchecked")
     private void initialize(final ApplicationContextModule applicationContextModuleParam) {
-      this.provideOkHttpProvider = DoubleCheck.provider(new SwitchingProvider<OkHttpClient>(singletonCImpl, 3));
-      this.provideJsonProvider = DoubleCheck.provider(new SwitchingProvider<Json>(singletonCImpl, 4));
-      this.provideRetrofitProvider = DoubleCheck.provider(new SwitchingProvider<Retrofit>(singletonCImpl, 2));
-      this.provideNewsApiProvider = DoubleCheck.provider(new SwitchingProvider<NewsApi>(singletonCImpl, 1));
-      this.provideDatabaseProvider = DoubleCheck.provider(new SwitchingProvider<AppDatabase>(singletonCImpl, 5));
-      this.newsRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<NewsRepository>(singletonCImpl, 0));
+      this.provideOkHttpProvider = DoubleCheck.provider(new SwitchingProvider<OkHttpClient>(singletonCImpl, 1));
+      this.articleExtractorProvider = DoubleCheck.provider(new SwitchingProvider<ArticleExtractor>(singletonCImpl, 0));
+      this.provideJsonProvider = DoubleCheck.provider(new SwitchingProvider<Json>(singletonCImpl, 5));
+      this.provideRetrofitProvider = DoubleCheck.provider(new SwitchingProvider<Retrofit>(singletonCImpl, 4));
+      this.provideNewsApiProvider = DoubleCheck.provider(new SwitchingProvider<NewsApi>(singletonCImpl, 3));
+      this.provideDatabaseProvider = DoubleCheck.provider(new SwitchingProvider<AppDatabase>(singletonCImpl, 6));
+      this.newsRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<NewsRepository>(singletonCImpl, 2));
     }
 
     @Override
@@ -613,22 +636,25 @@ public final class DaggerToutiaoApp_HiltComponents_SingletonC {
       @Override
       public T get() {
         switch (id) {
-          case 0: // com.demo.toutiao.data.repo.NewsRepository 
-          return (T) new NewsRepository(singletonCImpl.provideNewsApiProvider.get(), singletonCImpl.provideDatabaseProvider.get());
+          case 0: // com.demo.toutiao.data.article.ArticleExtractor 
+          return (T) new ArticleExtractor(singletonCImpl.provideOkHttpProvider.get());
 
-          case 1: // com.demo.toutiao.data.api.NewsApi 
-          return (T) AppModule_ProvideNewsApiFactory.provideNewsApi(singletonCImpl.provideRetrofitProvider.get());
-
-          case 2: // retrofit2.Retrofit 
-          return (T) AppModule_ProvideRetrofitFactory.provideRetrofit(singletonCImpl.provideOkHttpProvider.get(), singletonCImpl.provideJsonProvider.get());
-
-          case 3: // okhttp3.OkHttpClient 
+          case 1: // okhttp3.OkHttpClient 
           return (T) AppModule_ProvideOkHttpFactory.provideOkHttp();
 
-          case 4: // kotlinx.serialization.json.Json 
+          case 2: // com.demo.toutiao.data.repo.NewsRepository 
+          return (T) new NewsRepository(singletonCImpl.provideNewsApiProvider.get(), singletonCImpl.provideDatabaseProvider.get());
+
+          case 3: // com.demo.toutiao.data.api.NewsApi 
+          return (T) AppModule_ProvideNewsApiFactory.provideNewsApi(singletonCImpl.provideRetrofitProvider.get());
+
+          case 4: // retrofit2.Retrofit 
+          return (T) AppModule_ProvideRetrofitFactory.provideRetrofit(singletonCImpl.provideOkHttpProvider.get(), singletonCImpl.provideJsonProvider.get());
+
+          case 5: // kotlinx.serialization.json.Json 
           return (T) AppModule_ProvideJsonFactory.provideJson();
 
-          case 5: // com.demo.toutiao.data.db.AppDatabase 
+          case 6: // com.demo.toutiao.data.db.AppDatabase 
           return (T) AppModule_ProvideDatabaseFactory.provideDatabase(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           default: throw new AssertionError(id);

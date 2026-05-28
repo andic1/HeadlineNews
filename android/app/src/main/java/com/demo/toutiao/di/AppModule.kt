@@ -2,7 +2,6 @@ package com.demo.toutiao.di
 
 import android.content.Context
 import androidx.room.Room
-import com.demo.toutiao.BuildConfig
 import com.demo.toutiao.data.api.NewsApi
 import com.demo.toutiao.data.db.AppDatabase
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -23,6 +22,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
+    private const val BASE_URL = "https://apiserver.alcex.cn"
+
     @Provides
     @Singleton
     fun provideJson(): Json = Json {
@@ -34,7 +35,7 @@ object AppModule {
     @Singleton
     fun provideOkHttp(): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+            level = HttpLoggingInterceptor.Level.BASIC
         }
         return OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
@@ -48,7 +49,7 @@ object AppModule {
     fun provideRetrofit(client: OkHttpClient, json: Json): Retrofit {
         val contentType = "application/json".toMediaType()
         return Retrofit.Builder()
-            .baseUrl(BuildConfig.BACKEND_BASE_URL)
+            .baseUrl(BASE_URL)
             .client(client)
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()

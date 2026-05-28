@@ -1,21 +1,9 @@
-import java.util.Properties
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
     kotlin("plugin.serialization") version "1.9.24"
-}
-
-// 后端地址优先级：
-//   1. local.properties 里的 backend.url（真机/adb reverse 用：填局域网 IP 或 127.0.0.1）
-//   2. 默认 10.0.2.2:8080（模拟器：等价于宿主机 localhost）
-val backendUrl: String = run {
-    val props = Properties()
-    val f = rootProject.file("local.properties")
-    if (f.exists()) f.inputStream().use { props.load(it) }
-    props.getProperty("backend.url", "http://10.0.2.2:8080")
 }
 
 android {
@@ -29,7 +17,6 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "BACKEND_BASE_URL", "\"$backendUrl\"")
     }
 
     buildTypes {
@@ -98,6 +85,9 @@ dependencies {
 
     // Coil
     implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // Jsoup - HTML 正文提取
+    implementation("org.jsoup:jsoup:1.17.2")
 
     // Navigation Compose
     implementation("androidx.navigation:navigation-compose:2.7.7")

@@ -2,55 +2,88 @@ package com.demo.toutiao
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
-import androidx.navigation.NavType
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.demo.toutiao.ui.detail.DetailScreen
 import com.demo.toutiao.ui.home.HomeScreen
+import com.demo.toutiao.ui.home.HomeViewModel
 import com.demo.toutiao.ui.theme.ToutiaoTheme
 import dagger.hilt.android.AndroidEntryPoint
-import java.net.URLDecoder
-import java.net.URLEncoder
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT,
+            ),
+            navigationBarStyle = SystemBarStyle.light(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT,
+            ),
+        )
         super.onCreate(savedInstanceState)
         setContent {
             ToutiaoTheme {
                 val navController = rememberNavController()
-                NavHost(navController = navController, startDestination = "home") {
+                val viewModel: HomeViewModel = hiltViewModel()
+
+                NavHost(
+                    navController = navController,
+                    startDestination = "home",
+                    enterTransition = {
+                        slideIntoContainer(
+                            AnimatedContentTransitionScope.SlideDirection.Left,
+                            tween(250, easing = FastOutSlowInEasing),
+                        ) + fadeIn(tween(200))
+                    },
+                    exitTransition = {
+                        fadeOut(tween(150))
+                    },
+                    popEnterTransition = {
+                        slideIntoContainer(
+                            AnimatedContentTransitionScope.SlideDirection.Right,
+                            tween(250, easing = FastOutSlowInEasing),
+                            initialOffset = { it / 4 },
+                        ) + fadeIn(tween(200))
+                    },
+                    popExitTransition = {
+                        slideOutOfContainer(
+                            AnimatedContentTransitionScope.SlideDirection.Right,
+                            tween(250, easing = FastOutSlowInEasing),
+                        ) + fadeOut(tween(150))
+                    },
+                ) {
                     composable("home") {
                         HomeScreen(
-                            onNewsClick = { title, source, url ->
-                                val encTitle = URLEncoder.encode(title, "UTF-8")
-                                val encSource = URLEncoder.encode(source ?: "", "UTF-8")
-                                val encUrl = URLEncoder.encode(url, "UTF-8")
-                                navController.navigate("detail/$encTitle/$encSource/$encUrl")
+                            viewModel = viewModel,
+                            onNewsClick = { item ->
+                                viewModel.selectItem(item)
+                                navController.navigate("detail")
                             }
                         )
                     }
-                    composable(
-                        route = "detail/{title}/{source}/{url}",
-                        arguments = listOf(
-                            navArgument("title") { type = NavType.StringType },
-                            navArgument("source") { type = NavType.StringType },
-                            navArgument("url") { type = NavType.StringType },
-                        ),
-                    ) { entry ->
-                        val title = URLDecoder.decode(entry.arguments?.getString("title") ?: "", "UTF-8")
-                        val source = URLDecoder.decode(entry.arguments?.getString("source") ?: "", "UTF-8")
-                            .ifBlank { null }
-                        val url = URLDecoder.decode(entry.arguments?.getString("url") ?: "", "UTF-8")
-                        DetailScreen(
-                            title = title,
-                            source = source,
-                            url = url,
-                            onBack = { navController.popBackStack() },
-                        )
+                    composable("detail") {
+                        val item by viewModel.selectedItem.collectAsState()
+                        item?.let {
+                            DetailScreen(
+                                newsItem = it,
+                                onBack = { navController.popBackStack() },
+                            )
+                        }
                     }
                 }
             }

@@ -1,29 +1,21 @@
 package com.demo.toutiao.service
 
-import com.demo.toutiao.client.WhytaApiException
-import com.demo.toutiao.client.WhytaClient
-import com.demo.toutiao.client.WhytaNewsItem
+import com.demo.toutiao.client.HotNewsClient
+import com.demo.toutiao.client.HotNewsItem
 import com.demo.toutiao.model.LayoutType
 import com.demo.toutiao.model.NewsDto
 import com.demo.toutiao.model.NewsListResponse
 import com.demo.toutiao.repo.NewsRepository
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.LocalDateTime
 
 class NewsService(
     private val repo: NewsRepository,
-    private val whyta: WhytaClient,
+    private val hotNews: HotNewsClient,
     private val ttlMinutes: Long,
 ) {
     private val log = LoggerFactory.getLogger(NewsService::class.java)
-
-    /** "推荐"频道：是否走聚合模式 */
-    private val AGGREGATE_CATEGORY = "推荐"
 
     suspend fun loadNews(
         category: String,
@@ -31,18 +23,6 @@ class NewsService(
         pageSize: Int,
         forceRefresh: Boolean,
     ): NewsListResponse {
-        // 无对应 whyta 端点的分类：直接空列表
-        if (category != AGGREGATE_CATEGORY && whyta.pathForCategory(category) == null) {
-            return NewsListResponse(
-                category = category,
-                page = page,
-                pageSize = pageSize,
-                hasMore = false,
-                fromCache = false,
-                list = emptyList(),
-            )
-        }
-
         if (!forceRefresh && isFresh(category, page)) {
             val cached = repo.loadPage(category, page, pageSize)
             if (cached.isNotEmpty()) {
@@ -51,20 +31,27 @@ class NewsService(
             }
         }
 
-        // 调 whyta（带 1 次重试）
         val fetched = try {
-            if (category == AGGREGATE_CATEGORY) {
-                fetchAggregate(page, pageSize)
+            val items = hotNews.fetchForCategory(category, page, pageSize)
+            if (items.isNotEmpty()) {
+                log.info("hotNews success category=$category count=${items.size}")
+                items
             } else {
-                fetchWithRetry(category, page, pageSize)
+                log.warn("hotNews returned empty for category=$category, fallback to cache")
+                val stale = repo.loadPage(category, page, pageSize)
+                if (stale.isNotEmpty()) {
+                    return NewsListResponse(category, page, pageSize, hasMore = true, fromCache = true, list = stale)
+                }
+                return NewsListResponse(category, page, pageSize, hasMore = false, fromCache = false, list = emptyList())
             }
         } catch (e: Exception) {
-            log.warn("whyta fetch failed: ${e.message}, fallback to stale cache")
+            log.warn("hotNews failed: ${e.message}, fallback to stale cache")
             val stale = repo.loadPage(category, page, pageSize)
             if (stale.isNotEmpty()) {
                 return NewsListResponse(category, page, pageSize, hasMore = true, fromCache = true, list = stale)
             }
-            throw e
+            log.error("all sources unavailable for category=$category page=$page")
+            return NewsListResponse(category, page, pageSize, hasMore = false, fromCache = false, list = emptyList())
         }
 
         val dtos = fetched.mapIndexed { idx, item -> item.toDto(layoutFor(idx, item)) }
@@ -79,53 +66,18 @@ class NewsService(
         )
     }
 
-    /**
-     * 聚合拉取：并发调用多个频道端点，每个端点取少量条目，合并去重后打乱返回。
-     * 这样"推荐"频道就能展示来自不同媒体/频道的新闻。
-     */
-    private suspend fun fetchAggregate(page: Int, pageSize: Int): List<WhytaNewsItem> = coroutineScope {
-        val perSource = (pageSize / whyta.aggregatePaths.size).coerceAtLeast(3)
-
-        val results = whyta.aggregatePaths.map { path ->
-            async {
-                try {
-                    whyta.fetchByPath(path, page, perSource)
-                } catch (e: Exception) {
-                    log.warn("aggregate fetch failed for $path: ${e.message}")
-                    emptyList()
-                }
-            }
-        }.awaitAll()
-
-        // 合并 → 按 id 去重 → 打乱 → 截取 pageSize 条
-        results.flatten()
-            .distinctBy { it.id }
-            .shuffled()
-            .take(pageSize)
-    }
-
     private suspend fun isFresh(category: String, page: Int): Boolean {
         val last = repo.lastFetchedAt(category, page) ?: return false
         return Duration.between(last, LocalDateTime.now()).toMinutes() < ttlMinutes
     }
 
-    private suspend fun fetchWithRetry(category: String, page: Int, pageSize: Int): List<WhytaNewsItem> {
-        return try {
-            whyta.fetch(category, page, pageSize)
-        } catch (e: Exception) {
-            if (e is WhytaApiException && e.code in 400..499) throw e
-            delay(500)
-            whyta.fetch(category, page, pageSize)
-        }
-    }
-
-    private fun layoutFor(index: Int, item: WhytaNewsItem): String = when {
+    private fun layoutFor(index: Int, item: HotNewsItem): String = when {
         item.imageUrl.isNullOrBlank() -> LayoutType.TEXT_ONLY
         index % 5 == 4 -> LayoutType.BIG_IMAGE
         else -> LayoutType.TEXT_WITH_THUMB
     }
 
-    private fun WhytaNewsItem.toDto(layout: String) = NewsDto(
+    private fun HotNewsItem.toDto(layout: String) = NewsDto(
         id = id,
         title = title,
         description = description,

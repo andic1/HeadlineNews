@@ -1,32 +1,32 @@
 package com.demo.toutiao.data.api
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonPrimitive
 
+/**
+ * apiserver.alcex.cn/daily-hot/{platform} 的响应格式
+ */
 @Serializable
-data class ApiResponse<T>(
+data class HotNewsResponse(
     val code: Int,
-    val msg: String,
-    val data: T? = null,
+    val name: String = "",
+    val title: String = "",
+    val type: String = "",
+    val total: Int = 0,
+    val fromCache: Boolean = false,
+    val updateTime: String = "",
+    val data: List<HotNewsDto> = emptyList(),
 )
 
 @Serializable
-data class NewsListData(
-    val category: String,
-    val page: Int,
-    val pageSize: Int,
-    val hasMore: Boolean,
-    val fromCache: Boolean,
-    val list: List<NewsDto>,
-)
-
-@Serializable
-data class NewsDto(
-    val id: String,
-    val title: String,
-    val description: String? = null,
-    val source: String? = null,
-    val publishTime: String? = null,
-    val imageUrl: String? = null,
-    val originalUrl: String? = null,
-    val layoutType: String,
+data class HotNewsDto(
+    val id: JsonPrimitive? = null,
+    val title: String = "",
+    val desc: String? = null,
+    val cover: String? = null,
+    val hot: Long? = null,
+    val timestamp: Long? = null,
+    val url: String? = null,
+    val mobileUrl: String? = null,
 )

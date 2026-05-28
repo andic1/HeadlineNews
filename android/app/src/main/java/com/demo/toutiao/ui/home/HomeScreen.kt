@@ -6,15 +6,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.demo.toutiao.data.model.Categories
+import com.demo.toutiao.data.model.NewsItem
 import com.demo.toutiao.ui.theme.Bg
 import kotlinx.coroutines.launch
 
@@ -22,7 +25,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    onNewsClick: (title: String, source: String?, url: String) -> Unit = { _, _, _ -> },
+    onNewsClick: (NewsItem) -> Unit = {},
 ) {
     val tabs = viewModel.categories
     val initialIndex = tabs.indexOf(Categories.DEFAULT).coerceAtLeast(0)
@@ -31,7 +34,7 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            Column {
+            Column(modifier = Modifier.background(Color.White)) {
                 HomeTopBar()
                 CategoryTabRow(
                     tabs = tabs,
@@ -50,6 +53,7 @@ fun HomeScreen(
                 .padding(padding)
                 .background(Bg),
             key = { tabs[it] },
+            beyondBoundsPageCount = 1,
         ) { pageIndex ->
             val category = tabs[pageIndex]
             val items = viewModel.pagingFlow(category).collectAsLazyPagingItems()

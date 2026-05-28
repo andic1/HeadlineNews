@@ -1,50 +1,94 @@
 package com.demo.toutiao.ui.home
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.SmartDisplay
+import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.demo.toutiao.ui.theme.TextSecondary
+import com.demo.toutiao.ui.theme.DividerColor
+import com.demo.toutiao.ui.theme.TextCaption
+import com.demo.toutiao.ui.theme.TextPrimary
 import com.demo.toutiao.ui.theme.ToutiaoRed
 
-/** 底栏静态壳：5 个 Tab，仅"首页"高亮，其他不可交互 */
+/** 底栏：5 个 Tab，"首页"选中高亮，其他置灰 */
 @Composable
 fun BottomNavBar() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceAround,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        BottomItem(Icons.Default.Home, "首页", selected = true)
-        BottomItem(Icons.Default.PlayCircle, "西瓜视频", selected = false)
-        BottomItem(Icons.Default.Movie, "放映厅", selected = false)
-        BottomItem(Icons.Default.Star, "未登录", selected = false)
-        BottomItem(Icons.Default.Person, "我的", selected = false)
+    Column {
+        HorizontalDivider(color = DividerColor, thickness = 0.5.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White)
+                .navigationBarsPadding()
+                .height(56.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BottomItem(Icons.Outlined.Home, "首页", selected = true)
+            BottomItem(Icons.Outlined.SmartDisplay, "视频", selected = false)
+            BottomItem(Icons.Outlined.Storefront, "商城", selected = false)
+            BottomItem(Icons.Outlined.PlayCircle, "放映厅", selected = false)
+            BottomItem(Icons.Outlined.Person, "我的", selected = false)
+        }
     }
 }
 
 @Composable
 private fun BottomItem(icon: ImageVector, label: String, selected: Boolean) {
-    val tint = if (selected) ToutiaoRed else TextSecondary
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(22.dp))
+    val animatedTint by animateColorAsState(
+        targetValue = if (selected) ToutiaoRed else TextCaption,
+        animationSpec = tween(200),
+        label = "tint",
+    )
+    val animatedTextColor by animateColorAsState(
+        targetValue = if (selected) TextPrimary else TextCaption,
+        animationSpec = tween(200),
+        label = "textColor",
+    )
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .widthIn(min = 56.dp)
+            .fillMaxHeight()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+            ) { /* TODO: 切换 Tab */ },
+    ) {
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = animatedTint,
+            modifier = Modifier.size(24.dp),
+        )
         Spacer(Modifier.height(2.dp))
-        Text(label, color = tint, fontSize = 10.sp)
+        Text(
+            label,
+            color = animatedTextColor,
+            fontSize = 10.sp,
+            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+            maxLines = 1,
+        )
     }
 }
