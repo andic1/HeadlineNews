@@ -1,20 +1,18 @@
 package com.demo.toutiao.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// 今日头条品牌色
 val ToutiaoRed = Color(0xFFD63B30)
 val ToutiaoRedLight = Color(0xFFE85D52)
 val ToutiaoRedBg = Color(0xFFFEF2F2)
 val Bg = Color(0xFFF4F5F6)
 val CardBg = Color.White
-val TextPrimary = Color(0xFF1A1A1A)     // 加深：对比度 > 12:1
-val TextSecondary = Color(0xFF666666)   // 加深：对比度 > 4.5:1
-val TextCaption = Color(0xFF999999)     // 对比度 ~3:1 (仅用于非关键辅助文字)
+val TextPrimary = Color(0xFF1A1A1A)
+val TextSecondary = Color(0xFF666666)
+val TextCaption = Color(0xFF999999)
 val DividerColor = Color(0xFFEEEEEE)
 val TopBarBg = Color.White
 val TabIndicatorColor = Color(0xFFD63B30)
@@ -35,7 +33,6 @@ private val LightColors = lightColorScheme(
 
 @Composable
 fun ToutiaoTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(

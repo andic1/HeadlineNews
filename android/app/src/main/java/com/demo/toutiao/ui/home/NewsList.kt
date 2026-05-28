@@ -7,10 +7,18 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -44,36 +52,38 @@ fun NewsList(
     modifier: Modifier = Modifier,
     onNewsClick: (NewsItem) -> Unit = {},
 ) {
-    val ptrState = rememberPullToRefreshState()
-    val listState = rememberLazyListState()
+    val pullRefreshState = rememberPullToRefreshState()
 
-    if (ptrState.isRefreshing) {
-        LaunchedEffect(true) {
+    if (pullRefreshState.isRefreshing) {
+        LaunchedEffect(Unit) {
             items.refresh()
         }
     }
     LaunchedEffect(items.loadState.refresh) {
         if (items.loadState.refresh !is LoadState.Loading) {
-            ptrState.endRefresh()
+            pullRefreshState.endRefresh()
         }
     }
 
-    Box(modifier = modifier.nestedScroll(ptrState.nestedScrollConnection)) {
+    Box(modifier = modifier.nestedScroll(pullRefreshState.nestedScrollConnection)) {
         val refreshState = items.loadState.refresh
 
         when {
             refreshState is LoadState.Loading && items.itemCount == 0 -> {
                 FullScreenLoading()
             }
+
             refreshState is LoadState.Error && items.itemCount == 0 -> {
                 FullScreenError(
                     message = refreshState.error.message ?: "网络异常，请稍后重试",
                     onRetry = { items.retry() },
                 )
             }
+
             items.itemCount == 0 -> {
                 FullScreenEmpty()
             }
+
             else -> {
                 var visible by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) { visible = true }
@@ -83,16 +93,16 @@ fun NewsList(
                     enter = fadeIn(tween(200)),
                 ) {
                     LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize().background(Bg),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Bg),
                         contentPadding = PaddingValues(vertical = 4.dp),
                     ) {
                         items(
                             count = items.itemCount,
-                            key = { idx -> items.peek(idx)?.let { "${it.category}-${it.id}" } ?: idx },
-                        ) { idx ->
-                            items[idx]?.let { item ->
-                                // 列表项入场动画
+                            key = { index -> items.peek(index)?.let { "${it.category}-${it.id}" } ?: index },
+                        ) { index ->
+                            items[index]?.let { item ->
                                 AnimatedVisibility(
                                     visible = true,
                                     enter = slideInVertically(
@@ -103,12 +113,12 @@ fun NewsList(
                                         ),
                                     ) + fadeIn(tween(200)),
                                 ) {
-                                    NewsCard(item, onNewsClick = onNewsClick)
+                                    NewsCard(item = item, onNewsClick = onNewsClick)
                                 }
                             }
                         }
                         item {
-                            AppendFooter(items.loadState.append) { items.retry() }
+                            AppendFooter(state = items.loadState.append, onRetry = items::retry)
                         }
                     }
                 }
@@ -116,7 +126,7 @@ fun NewsList(
         }
 
         PullToRefreshContainer(
-            state = ptrState,
+            state = pullRefreshState,
             modifier = Modifier.align(Alignment.TopCenter),
             containerColor = Bg,
             contentColor = ToutiaoRed,
@@ -138,7 +148,7 @@ private fun FullScreenLoading() {
 @Composable
 private fun FullScreenError(message: String, onRetry: () -> Unit) {
     Column(
-        Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -173,11 +183,15 @@ private fun AppendFooter(state: LoadState, onRetry: () -> Unit) {
                 modifier = Modifier.size(20.dp),
                 strokeWidth = 2.dp,
             )
+
             is LoadState.Error -> TextButton(onClick = onRetry) {
-                Text("加载失败，点击重试", color = TextSecondary, fontSize = 13.sp)
+                Text("加载失败，点此重试", color = TextSecondary, fontSize = 13.sp)
             }
-            is LoadState.NotLoading -> if (state.endOfPaginationReached) {
-                Text("— 没有更多了 —", color = TextCaption, fontSize = 12.sp)
+
+            is LoadState.NotLoading -> {
+                if (state.endOfPaginationReached) {
+                    Text("— 没有更多了 —", color = TextCaption, fontSize = 12.sp)
+                }
             }
         }
     }

@@ -5,7 +5,16 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
@@ -30,7 +39,6 @@ import com.demo.toutiao.ui.theme.TextCaption
 import com.demo.toutiao.ui.theme.TextPrimary
 import com.demo.toutiao.ui.theme.ToutiaoRed
 
-/** 底栏：5 个 Tab，"首页"选中高亮，其他置灰 */
 @Composable
 fun BottomNavBar() {
     Column {
@@ -65,6 +73,7 @@ private fun BottomItem(icon: ImageVector, label: String, selected: Boolean) {
         animationSpec = tween(200),
         label = "textColor",
     )
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -74,17 +83,17 @@ private fun BottomItem(icon: ImageVector, label: String, selected: Boolean) {
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-            ) { /* TODO: 切换 Tab */ },
+            ) {},
     ) {
         Icon(
-            icon,
+            imageVector = icon,
             contentDescription = label,
             tint = animatedTint,
             modifier = Modifier.size(24.dp),
         )
         Spacer(Modifier.height(2.dp))
         Text(
-            label,
+            text = label,
             color = animatedTextColor,
             fontSize = 10.sp,
             fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,

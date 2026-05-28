@@ -3,7 +3,14 @@ package com.demo.toutiao.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Notifications
@@ -27,7 +34,6 @@ import com.demo.toutiao.ui.theme.TextCaption
 import com.demo.toutiao.ui.theme.TextSecondary
 import com.demo.toutiao.ui.theme.ToutiaoRed
 
-/** 顶栏：Logo + 搜索框 + 通知图标 — 仿今日头条白底风格 */
 @Composable
 fun HomeTopBar() {
     Row(
@@ -39,7 +45,6 @@ fun HomeTopBar() {
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Logo 文字
         Text(
             text = "今日头条",
             color = ToutiaoRed,
@@ -50,7 +55,6 @@ fun HomeTopBar() {
 
         Spacer(Modifier.width(10.dp))
 
-        // 搜索框
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -61,27 +65,26 @@ fun HomeTopBar() {
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                ) { /* TODO: 打开搜索 */ }
+                ) {}
                 .padding(horizontal = 12.dp),
         ) {
             Icon(
-                Icons.Outlined.Search,
+                imageVector = Icons.Outlined.Search,
                 contentDescription = null,
                 tint = TextCaption,
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(6.dp))
             Text(
-                "搜索感兴趣的内容",
+                text = "搜索感兴趣的内容",
                 color = TextCaption,
                 fontSize = 13.sp,
                 maxLines = 1,
             )
         }
 
-        // 通知入口 (带角标暗示)
         IconButton(
-            onClick = { /* TODO */ },
+            onClick = {},
             modifier = Modifier.size(44.dp),
         ) {
             BadgedBox(
@@ -94,7 +97,7 @@ fun HomeTopBar() {
                 },
             ) {
                 Icon(
-                    Icons.Outlined.Notifications,
+                    imageVector = Icons.Outlined.Notifications,
                     contentDescription = "通知",
                     tint = TextSecondary,
                     modifier = Modifier.size(22.dp),
