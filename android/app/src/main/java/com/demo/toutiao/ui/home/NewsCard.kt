@@ -13,8 +13,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -61,7 +61,7 @@ fun NewsCard(
             .background(CardBg)
             .clickable(
                 interactionSource = interactionSource,
-                indication = ripple(color = Color(0x10000000)),
+                indication = rememberRipple(color = Color(0x10000000)),
             ) { onNewsClick(item) }
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
