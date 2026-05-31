@@ -1,9 +1,18 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
     kotlin("plugin.serialization") version "1.9.24"
+}
+
+val aiLocalProperties = Properties().apply {
+    val file = rootProject.file("ai.local.properties")
+    if (file.exists()) {
+        file.inputStream().use { stream -> load(stream) }
+    }
 }
 
 android {
@@ -17,6 +26,16 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField(
+            "String",
+            "AI_BASE_URL",
+            "\"${aiLocalProperties.getProperty("ai.baseUrl", "http://8.148.78.175/")}\"",
+        )
+        buildConfigField(
+            "String",
+            "AI_APP_TOKEN",
+            "\"${aiLocalProperties.getProperty("ai.appToken", "")}\"",
+        )
     }
 
     buildTypes {

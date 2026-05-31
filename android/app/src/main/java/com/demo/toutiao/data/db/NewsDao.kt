@@ -10,6 +10,16 @@ interface NewsDao {
     @Query("SELECT * FROM news WHERE category = :cat ORDER BY position ASC")
     fun pagingSource(cat: String): PagingSource<Int, NewsEntity>
 
+    @Query("SELECT * FROM news WHERE category = :cat ORDER BY position ASC LIMIT :limit OFFSET :offset")
+    suspend fun loadPage(
+        cat: String,
+        limit: Int,
+        offset: Int,
+    ): List<NewsEntity>
+
+    @Query("SELECT COUNT(*) FROM news WHERE category = :cat")
+    suspend fun count(cat: String): Int
+
     @Query("DELETE FROM news WHERE category = :cat")
     suspend fun clearCategory(cat: String)
 

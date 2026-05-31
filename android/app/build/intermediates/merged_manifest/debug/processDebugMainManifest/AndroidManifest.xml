@@ -23,13 +23,13 @@
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
         android:debuggable="true"
         android:extractNativeLibs="false"
-        android:label="今日头条 Demo"
-        android:testOnly="true"
+        android:label="@string/app_name"
         android:theme="@style/Theme.ToutiaoDemo"
         android:usesCleartextTraffic="true" >
         <activity
             android:name="com.demo.toutiao.MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.ToutiaoDemo" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

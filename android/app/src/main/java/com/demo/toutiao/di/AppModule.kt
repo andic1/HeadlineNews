@@ -2,6 +2,8 @@ package com.demo.toutiao.di
 
 import android.content.Context
 import androidx.room.Room
+import com.demo.toutiao.BuildConfig
+import com.demo.toutiao.data.api.AiApi
 import com.demo.toutiao.data.api.NewsApi
 import com.demo.toutiao.data.db.AppDatabase
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -38,8 +40,9 @@ object AppModule {
             level = HttpLoggingInterceptor.Level.BASIC
         }
         return OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(6, TimeUnit.SECONDS)
+            .readTimeout(12, TimeUnit.SECONDS)
+            .writeTimeout(12, TimeUnit.SECONDS)
             .addInterceptor(logging)
             .build()
     }
@@ -58,6 +61,18 @@ object AppModule {
     @Provides
     @Singleton
     fun provideNewsApi(retrofit: Retrofit): NewsApi = retrofit.create(NewsApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAiApi(client: OkHttpClient, json: Json): AiApi {
+        val contentType = "application/json".toMediaType()
+        return Retrofit.Builder()
+            .baseUrl(BuildConfig.AI_BASE_URL)
+            .client(client)
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            .create(AiApi::class.java)
+    }
 
     @Provides
     @Singleton

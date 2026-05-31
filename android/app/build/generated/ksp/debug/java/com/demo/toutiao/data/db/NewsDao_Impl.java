@@ -1,6 +1,7 @@
 package com.demo.toutiao.data.db;
 
 import android.database.Cursor;
+import android.os.CancellationSignal;
 import androidx.annotation.NonNull;
 import androidx.paging.PagingSource;
 import androidx.room.CoroutinesRoom;
@@ -12,6 +13,7 @@ import androidx.room.RoomSQLiteQuery;
 import androidx.room.SharedSQLiteStatement;
 import androidx.room.paging.LimitOffsetPagingSource;
 import androidx.room.util.CursorUtil;
+import androidx.room.util.DBUtil;
 import androidx.sqlite.db.SupportSQLiteStatement;
 import java.lang.Class;
 import java.lang.Exception;
@@ -252,6 +254,122 @@ public final class NewsDao_Impl implements NewsDao {
         return _result;
       }
     };
+  }
+
+  @Override
+  public Object loadPage(final String cat, final int limit, final int offset,
+      final Continuation<? super List<NewsEntity>> $completion) {
+    final String _sql = "SELECT * FROM news WHERE category = ? ORDER BY position ASC LIMIT ? OFFSET ?";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 3);
+    int _argIndex = 1;
+    _statement.bindString(_argIndex, cat);
+    _argIndex = 2;
+    _statement.bindLong(_argIndex, limit);
+    _argIndex = 3;
+    _statement.bindLong(_argIndex, offset);
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<List<NewsEntity>>() {
+      @Override
+      @NonNull
+      public List<NewsEntity> call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfCategory = CursorUtil.getColumnIndexOrThrow(_cursor, "category");
+          final int _cursorIndexOfTitle = CursorUtil.getColumnIndexOrThrow(_cursor, "title");
+          final int _cursorIndexOfDescription = CursorUtil.getColumnIndexOrThrow(_cursor, "description");
+          final int _cursorIndexOfSource = CursorUtil.getColumnIndexOrThrow(_cursor, "source");
+          final int _cursorIndexOfImageUrl = CursorUtil.getColumnIndexOrThrow(_cursor, "imageUrl");
+          final int _cursorIndexOfOriginalUrl = CursorUtil.getColumnIndexOrThrow(_cursor, "originalUrl");
+          final int _cursorIndexOfPublishTime = CursorUtil.getColumnIndexOrThrow(_cursor, "publishTime");
+          final int _cursorIndexOfLayoutType = CursorUtil.getColumnIndexOrThrow(_cursor, "layoutType");
+          final int _cursorIndexOfPosition = CursorUtil.getColumnIndexOrThrow(_cursor, "position");
+          final int _cursorIndexOfCachedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "cachedAt");
+          final List<NewsEntity> _result = new ArrayList<NewsEntity>(_cursor.getCount());
+          while (_cursor.moveToNext()) {
+            final NewsEntity _item;
+            final String _tmpId;
+            _tmpId = _cursor.getString(_cursorIndexOfId);
+            final String _tmpCategory;
+            _tmpCategory = _cursor.getString(_cursorIndexOfCategory);
+            final String _tmpTitle;
+            _tmpTitle = _cursor.getString(_cursorIndexOfTitle);
+            final String _tmpDescription;
+            if (_cursor.isNull(_cursorIndexOfDescription)) {
+              _tmpDescription = null;
+            } else {
+              _tmpDescription = _cursor.getString(_cursorIndexOfDescription);
+            }
+            final String _tmpSource;
+            if (_cursor.isNull(_cursorIndexOfSource)) {
+              _tmpSource = null;
+            } else {
+              _tmpSource = _cursor.getString(_cursorIndexOfSource);
+            }
+            final String _tmpImageUrl;
+            if (_cursor.isNull(_cursorIndexOfImageUrl)) {
+              _tmpImageUrl = null;
+            } else {
+              _tmpImageUrl = _cursor.getString(_cursorIndexOfImageUrl);
+            }
+            final String _tmpOriginalUrl;
+            if (_cursor.isNull(_cursorIndexOfOriginalUrl)) {
+              _tmpOriginalUrl = null;
+            } else {
+              _tmpOriginalUrl = _cursor.getString(_cursorIndexOfOriginalUrl);
+            }
+            final String _tmpPublishTime;
+            if (_cursor.isNull(_cursorIndexOfPublishTime)) {
+              _tmpPublishTime = null;
+            } else {
+              _tmpPublishTime = _cursor.getString(_cursorIndexOfPublishTime);
+            }
+            final String _tmpLayoutType;
+            _tmpLayoutType = _cursor.getString(_cursorIndexOfLayoutType);
+            final int _tmpPosition;
+            _tmpPosition = _cursor.getInt(_cursorIndexOfPosition);
+            final long _tmpCachedAt;
+            _tmpCachedAt = _cursor.getLong(_cursorIndexOfCachedAt);
+            _item = new NewsEntity(_tmpId,_tmpCategory,_tmpTitle,_tmpDescription,_tmpSource,_tmpImageUrl,_tmpOriginalUrl,_tmpPublishTime,_tmpLayoutType,_tmpPosition,_tmpCachedAt);
+            _result.add(_item);
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
+  }
+
+  @Override
+  public Object count(final String cat, final Continuation<? super Integer> $completion) {
+    final String _sql = "SELECT COUNT(*) FROM news WHERE category = ?";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
+    int _argIndex = 1;
+    _statement.bindString(_argIndex, cat);
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<Integer>() {
+      @Override
+      @NonNull
+      public Integer call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final Integer _result;
+          if (_cursor.moveToFirst()) {
+            final int _tmp;
+            _tmp = _cursor.getInt(0);
+            _result = _tmp;
+          } else {
+            _result = 0;
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
   }
 
   @NonNull

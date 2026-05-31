@@ -13,8 +13,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
@@ -29,11 +31,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.demo.toutiao.ui.theme.CardBg
 import com.demo.toutiao.ui.theme.DividerColor
 import com.demo.toutiao.ui.theme.TextCaption
 import com.demo.toutiao.ui.theme.TextPrimary
@@ -46,17 +50,18 @@ fun BottomNavBar() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(CardBg)
                 .navigationBarsPadding()
-                .height(56.dp),
+                .height(62.dp)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BottomItem(Icons.Outlined.Home, "首页", selected = true)
-            BottomItem(Icons.Outlined.SmartDisplay, "视频", selected = false)
-            BottomItem(Icons.Outlined.Storefront, "商城", selected = false)
-            BottomItem(Icons.Outlined.PlayCircle, "放映厅", selected = false)
-            BottomItem(Icons.Outlined.Person, "我的", selected = false)
+            BottomItem(Icons.Outlined.Home, "\u9996\u9875", selected = true)
+            BottomItem(Icons.Outlined.SmartDisplay, "\u89c6\u9891", selected = false)
+            BottomItem(Icons.Outlined.Storefront, "\u5546\u57ce", selected = false)
+            BottomItem(Icons.Outlined.PlayCircle, "\u653e\u6620\u5385", selected = false)
+            BottomItem(Icons.Outlined.Person, "\u6211\u7684", selected = false)
         }
     }
 }
@@ -73,13 +78,20 @@ private fun BottomItem(icon: ImageVector, label: String, selected: Boolean) {
         animationSpec = tween(200),
         label = "textColor",
     )
+    val pillColor by animateColorAsState(
+        targetValue = if (selected) ToutiaoRed.copy(alpha = 0.08f) else Color.Transparent,
+        animationSpec = tween(200),
+        label = "pillColor",
+    )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
-            .widthIn(min = 56.dp)
+            .widthIn(min = 54.dp)
             .fillMaxHeight()
+            .clip(RoundedCornerShape(16.dp))
+            .background(pillColor)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -91,7 +103,7 @@ private fun BottomItem(icon: ImageVector, label: String, selected: Boolean) {
             tint = animatedTint,
             modifier = Modifier.size(24.dp),
         )
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(3.dp))
         Text(
             text = label,
             color = animatedTextColor,

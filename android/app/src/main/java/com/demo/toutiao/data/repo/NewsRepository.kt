@@ -23,8 +23,9 @@ class NewsRepository @Inject constructor(
     @OptIn(ExperimentalPagingApi::class)
     fun pagingFlow(category: String): Flow<PagingData<NewsItem>> = Pager(
         config = PagingConfig(
-            pageSize = 20,
-            prefetchDistance = 5,
+            pageSize = 15,
+            initialLoadSize = 15,
+            prefetchDistance = 1,
             enablePlaceholders = false,
         ),
         remoteMediator = NewsRemoteMediator(category, api, db),

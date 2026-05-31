@@ -1,11 +1,5 @@
 package com.demo.toutiao.ui.home
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,9 +22,6 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -39,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
+import com.demo.toutiao.data.model.Categories
 import com.demo.toutiao.data.model.NewsItem
 import com.demo.toutiao.ui.theme.Bg
 import com.demo.toutiao.ui.theme.TextCaption
@@ -49,16 +41,19 @@ import com.demo.toutiao.ui.theme.ToutiaoRed
 @Composable
 fun NewsList(
     items: LazyPagingItems<NewsItem>,
+    category: String,
     modifier: Modifier = Modifier,
+    header: (@Composable () -> Unit)? = null,
     onNewsClick: (NewsItem) -> Unit = {},
 ) {
     val pullRefreshState = rememberPullToRefreshState()
 
-    if (pullRefreshState.isRefreshing) {
-        LaunchedEffect(Unit) {
+    LaunchedEffect(pullRefreshState.isRefreshing) {
+        if (pullRefreshState.isRefreshing) {
             items.refresh()
         }
     }
+
     LaunchedEffect(items.loadState.refresh) {
         if (items.loadState.refresh !is LoadState.Loading) {
             pullRefreshState.endRefresh()
@@ -69,9 +64,7 @@ fun NewsList(
         val refreshState = items.loadState.refresh
 
         when {
-            refreshState is LoadState.Loading && items.itemCount == 0 -> {
-                FullScreenLoading()
-            }
+            refreshState is LoadState.Loading && items.itemCount == 0 -> FullScreenLoading()
 
             refreshState is LoadState.Error && items.itemCount == 0 -> {
                 FullScreenError(
@@ -80,46 +73,36 @@ fun NewsList(
                 )
             }
 
-            items.itemCount == 0 -> {
-                FullScreenEmpty()
-            }
+            items.itemCount == 0 -> FullScreenEmpty()
 
             else -> {
-                var visible by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) { visible = true }
-
-                AnimatedVisibility(
-                    visible = visible,
-                    enter = fadeIn(tween(200)),
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Bg),
+                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 6.dp),
                 ) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Bg),
-                        contentPadding = PaddingValues(vertical = 4.dp),
-                    ) {
-                        items(
-                            count = items.itemCount,
-                            key = { index -> items.peek(index)?.let { "${it.category}-${it.id}" } ?: index },
-                        ) { index ->
-                            items[index]?.let { item ->
-                                AnimatedVisibility(
-                                    visible = true,
-                                    enter = slideInVertically(
-                                        initialOffsetY = { it / 3 },
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioLowBouncy,
-                                            stiffness = Spring.StiffnessMediumLow,
-                                        ),
-                                    ) + fadeIn(tween(200)),
-                                ) {
-                                    NewsCard(item = item, onNewsClick = onNewsClick)
-                                }
-                            }
+                    if (header != null) {
+                        item(key = "news-list-header") {
+                            header()
                         }
-                        item {
-                            AppendFooter(state = items.loadState.append, onRetry = items::retry)
+                    }
+
+                    items(
+                        count = items.itemCount,
+                        key = { index -> items.peek(index)?.let { "${it.category}-${it.id}" } ?: index },
+                    ) { index ->
+                        items[index]?.let { item ->
+                            NewsCard(
+                                item = item,
+                                legacyStyle = category == Categories.TRENDING,
+                                onNewsClick = onNewsClick,
+                            )
                         }
+                    }
+
+                    item {
+                        AppendFooter(state = items.loadState.append, onRetry = items::retry)
                     }
                 }
             }
@@ -190,7 +173,9 @@ private fun AppendFooter(state: LoadState, onRetry: () -> Unit) {
 
             is LoadState.NotLoading -> {
                 if (state.endOfPaginationReached) {
-                    Text("— 没有更多了 —", color = TextCaption, fontSize = 12.sp)
+                    Text("没有更多内容了", color = TextCaption, fontSize = 12.sp)
+                } else {
+                    Text("加载更多", color = TextCaption, fontSize = 12.sp)
                 }
             }
         }

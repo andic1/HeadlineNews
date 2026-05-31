@@ -1,5 +1,6 @@
 package com.demo.toutiao.ui.home;
 
+import com.demo.toutiao.data.repo.AiRepository;
 import com.demo.toutiao.data.repo.NewsRepository;
 import dagger.internal.DaggerGenerated;
 import dagger.internal.Factory;
@@ -25,20 +26,25 @@ import javax.inject.Provider;
 public final class HomeViewModel_Factory implements Factory<HomeViewModel> {
   private final Provider<NewsRepository> repoProvider;
 
-  public HomeViewModel_Factory(Provider<NewsRepository> repoProvider) {
+  private final Provider<AiRepository> aiRepoProvider;
+
+  public HomeViewModel_Factory(Provider<NewsRepository> repoProvider,
+      Provider<AiRepository> aiRepoProvider) {
     this.repoProvider = repoProvider;
+    this.aiRepoProvider = aiRepoProvider;
   }
 
   @Override
   public HomeViewModel get() {
-    return newInstance(repoProvider.get());
+    return newInstance(repoProvider.get(), aiRepoProvider.get());
   }
 
-  public static HomeViewModel_Factory create(Provider<NewsRepository> repoProvider) {
-    return new HomeViewModel_Factory(repoProvider);
+  public static HomeViewModel_Factory create(Provider<NewsRepository> repoProvider,
+      Provider<AiRepository> aiRepoProvider) {
+    return new HomeViewModel_Factory(repoProvider, aiRepoProvider);
   }
 
-  public static HomeViewModel newInstance(NewsRepository repo) {
-    return new HomeViewModel(repo);
+  public static HomeViewModel newInstance(NewsRepository repo, AiRepository aiRepo) {
+    return new HomeViewModel(repo, aiRepo);
   }
 }

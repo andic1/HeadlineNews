@@ -35,7 +35,7 @@ fun CategoryTabRow(
 ) {
     ScrollableTabRow(
         selectedTabIndex = selectedIndex,
-        edgePadding = 4.dp,
+        edgePadding = 12.dp,
         containerColor = Color.White,
         contentColor = TextPrimary,
         indicator = { tabPositions ->
@@ -43,7 +43,7 @@ fun CategoryTabRow(
                 TabRowDefaults.SecondaryIndicator(
                     modifier = Modifier
                         .tabIndicatorOffset(tabPositions[selectedIndex])
-                        .padding(horizontal = 12.dp)
+                        .padding(horizontal = 14.dp)
                         .clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)),
                     height = 3.dp,
                     color = TabIndicatorColor,
@@ -64,6 +64,7 @@ fun CategoryTabRow(
             Tab(
                 selected = isSelected,
                 onClick = { onSelect(i) },
+                modifier = Modifier.padding(horizontal = 4.dp),
                 text = {
                     Text(
                         text = name,

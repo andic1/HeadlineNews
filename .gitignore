@@ -13,6 +13,7 @@ android/app/build/
 android/build/
 android/.gradle/
 android/local.properties
+android/ai.local.properties
 
 # Backend
 backend/build/

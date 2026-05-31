@@ -2,8 +2,12 @@ package com.demo.toutiao.ui.detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.demo.toutiao.data.article.ArticleExtractor
+import com.demo.toutiao.data.api.AiChatResponse
+import com.demo.toutiao.data.api.AiSummaryResponse
 import com.demo.toutiao.data.model.NewsItem
+import com.demo.toutiao.data.repo.AiRepository
+import com.demo.toutiao.ui.ai.AiUiState
+import com.demo.toutiao.ui.ai.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,82 +16,71 @@ import kotlinx.coroutines.launch
 
 sealed class ArticleState {
     data object Loading : ArticleState()
-    data class Success(val html: String) : ArticleState()
-    data object Fallback : ArticleState()
+    data class WebUrl(val url: String) : ArticleState()
+    data class Html(val html: String) : ArticleState()
 }
 
 @HiltViewModel
 class DetailViewModel @Inject constructor(
-    private val extractor: ArticleExtractor,
+    private val aiRepo: AiRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<ArticleState>(ArticleState.Loading)
     val state: StateFlow<ArticleState> = _state
 
+    private val _summaryState = MutableStateFlow<AiUiState<AiSummaryResponse>>(AiUiState.Idle)
+    val summaryState: StateFlow<AiUiState<AiSummaryResponse>> = _summaryState
+
+    private val _chatState = MutableStateFlow<AiUiState<AiChatResponse>>(AiUiState.Idle)
+    val chatState: StateFlow<AiUiState<AiChatResponse>> = _chatState
+
+    private var currentItem: NewsItem? = null
+
     fun loadArticle(newsItem: NewsItem) {
-        val url = newsItem.originalUrl
-        if (url.isNullOrBlank()) {
-            val description = newsItem.description.orEmpty()
-            _state.value = if (description.isNotBlank()) {
-                ArticleState.Success(wrapInTemplate(newsItem, "<p>${escapeHtml(description)}</p>"))
-            } else {
-                ArticleState.Success(wrapInTemplate(newsItem, "<p class='empty'>暂无详细内容</p>"))
-            }
+        currentItem = newsItem
+        loadAiSummary(newsItem)
+
+        val url = newsItem.originalUrl.orEmpty().trim()
+        if (url.isNotBlank()) {
+            _state.value = ArticleState.WebUrl(url)
             return
         }
 
+        val description = newsItem.description.orEmpty().trim()
+        val body = when {
+            description.isNotBlank() -> "<p>${escapeHtml(description)}</p>"
+            else -> "<p class='empty'>暂无详细内容</p>"
+        }
+
+        _state.value = ArticleState.Html(wrapInTemplate(newsItem, body))
+    }
+
+    fun askAi(question: String) {
+        val item = currentItem ?: return
+        val cleanQuestion = question.trim()
+        if (cleanQuestion.isBlank()) return
+
         viewModelScope.launch {
-            _state.value = ArticleState.Loading
-            val article = extractor.extract(url)
-            if (article != null) {
-                _state.value = ArticleState.Success(wrapInTemplate(newsItem, article.contentHtml))
-                return@launch
-            }
-
-            val canFallbackToWebView = url.contains("zhihu.com") ||
-                url.contains("thepaper.cn") ||
-                url.contains("baidu.com")
-
-            _state.value = if (canFallbackToWebView) {
-                ArticleState.Fallback
-            } else {
-                ArticleState.Success(wrapInTemplate(newsItem, buildSummaryHtml(newsItem)))
-            }
+            _chatState.value = AiUiState.Loading
+            _chatState.value = runCatching {
+                aiRepo.chat(item, cleanQuestion)
+            }.fold(
+                onSuccess = { AiUiState.Success(it) },
+                onFailure = { AiUiState.Error(it.toUserMessage()) },
+            )
         }
     }
 
-    private fun buildSummaryHtml(newsItem: NewsItem): String {
-        val html = StringBuilder()
-
-        if (!newsItem.description.isNullOrBlank()) {
-            html.append("<p>${escapeHtml(newsItem.description)}</p>")
-        }
-
-        if (!newsItem.imageUrl.isNullOrBlank()) {
-            html.append(
-                """
-                <div style="margin:20px 0;">
-                    <img src="${newsItem.imageUrl}" style="width:100%;border-radius:8px;" alt="">
-                </div>
-                """.trimIndent(),
+    private fun loadAiSummary(newsItem: NewsItem) {
+        viewModelScope.launch {
+            _summaryState.value = AiUiState.Loading
+            _summaryState.value = runCatching {
+                aiRepo.summarize(newsItem)
+            }.fold(
+                onSuccess = { AiUiState.Success(it) },
+                onFailure = { AiUiState.Error(it.toUserMessage()) },
             )
         }
-
-        if (html.isEmpty()) {
-            html.append("""<p style="color:#999;text-align:center;padding:40px 0;">暂无正文内容</p>""")
-        }
-
-        if (!newsItem.originalUrl.isNullOrBlank()) {
-            html.append(
-                """
-                <div style="margin-top:30px;padding-top:20px;border-top:1px solid #f0f0f0;text-align:center;">
-                    <a href="${newsItem.originalUrl}" style="display:inline-block;padding:10px 24px;background:#d63b30;color:#fff;border-radius:20px;text-decoration:none;font-size:14px;font-weight:500;">查看原文</a>
-                </div>
-                """.trimIndent(),
-            )
-        }
-
-        return html.toString()
     }
 
     private fun wrapInTemplate(newsItem: NewsItem, bodyHtml: String): String {
@@ -119,7 +112,7 @@ class DetailViewModel @Inject constructor(
                              "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
                 font-size: 17px;
                 line-height: 1.8;
-                color: #222;
+                color: #111827;
                 background: #fff;
                 padding: 0 20px 40px;
                 -webkit-font-smoothing: antialiased;
@@ -128,14 +121,14 @@ class DetailViewModel @Inject constructor(
             }
             .header {
                 padding: 20px 0 16px;
-                border-bottom: 1px solid #f0f0f0;
+                border-bottom: 1px solid #eef0f2;
                 margin-bottom: 20px;
             }
             .title {
                 font-size: 22px;
                 font-weight: 700;
                 line-height: 1.4;
-                color: #111;
+                color: #111827;
                 margin-bottom: 12px;
                 letter-spacing: -0.3px;
             }
@@ -144,11 +137,12 @@ class DetailViewModel @Inject constructor(
                 align-items: center;
                 gap: 12px;
                 font-size: 13px;
-                color: #999;
+                color: #6b7280;
+                flex-wrap: wrap;
             }
             .meta .source {
                 color: #d63b30;
-                font-weight: 500;
+                font-weight: 600;
             }
             .cover {
                 margin: 0 -20px 20px;
@@ -165,14 +159,14 @@ class DetailViewModel @Inject constructor(
             .content img {
                 max-width: 100%;
                 height: auto;
-                border-radius: 6px;
+                border-radius: 8px;
                 margin: 16px auto;
                 display: block;
             }
             .content h2, .content h3, .content h4 {
                 font-weight: 600;
                 margin: 24px 0 12px;
-                color: #111;
+                color: #111827;
             }
             .content h2 { font-size: 20px; }
             .content h3 { font-size: 18px; }
@@ -196,43 +190,17 @@ class DetailViewModel @Inject constructor(
             .content li {
                 margin: 6px 0;
             }
-            .content figure {
-                margin: 16px 0;
-                text-align: center;
-            }
-            .content figcaption {
-                font-size: 13px;
-                color: #999;
-                margin-top: 6px;
-            }
-            .content table {
-                width: 100%;
-                border-collapse: collapse;
-                margin: 16px 0;
-                font-size: 14px;
-            }
-            .content th, .content td {
-                border: 1px solid #eee;
-                padding: 8px 12px;
-                text-align: left;
-            }
-            .content th {
-                background: #f7f7f7;
-                font-weight: 600;
-            }
             .empty {
                 text-align: center;
-                color: #ccc;
+                color: #9ca3af;
                 padding: 60px 0;
                 font-size: 15px;
             }
             @media (prefers-color-scheme: dark) {
-                body { background: #1a1a1a; color: #e0e0e0; }
-                .header { border-bottom-color: #333; }
-                .title { color: #f0f0f0; }
+                body { background: #1a1a1a; color: #e5e7eb; }
+                .header { border-bottom-color: #2f3338; }
+                .title { color: #f3f4f6; }
                 .content blockquote { background: #252525; color: #bbb; }
-                .content th { background: #2a2a2a; }
-                .content th, .content td { border-color: #333; }
             }
             </style>
             </head>

@@ -6,7 +6,7 @@ import com.demo.toutiao.data.api.HotNewsDto
 import com.demo.toutiao.data.model.LayoutType
 import com.demo.toutiao.data.model.NewsItem
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 
@@ -27,20 +27,55 @@ data class NewsEntity(
 
 private val sdf by lazy {
     SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).apply {
+        isLenient = false
         timeZone = TimeZone.getTimeZone("Asia/Shanghai")
     }
 }
 
-fun HotNewsDto.toEntity(category: String, source: String, position: Int): NewsEntity {
+private val inputTimeFormats by lazy {
+    listOf(
+        SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).apply {
+            isLenient = false
+            timeZone = TimeZone.getTimeZone("Asia/Shanghai")
+        },
+        SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA).apply {
+            isLenient = false
+            timeZone = TimeZone.getTimeZone("Asia/Shanghai")
+        },
+        SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.CHINA).apply {
+            isLenient = false
+            timeZone = TimeZone.getTimeZone("Asia/Shanghai")
+        },
+        SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.CHINA).apply {
+            isLenient = false
+            timeZone = TimeZone.getTimeZone("Asia/Shanghai")
+        },
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX", Locale.CHINA).apply {
+            isLenient = false
+            timeZone = TimeZone.getTimeZone("Asia/Shanghai")
+        },
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.CHINA).apply {
+            isLenient = false
+            timeZone = TimeZone.getTimeZone("Asia/Shanghai")
+        },
+    )
+}
+
+fun HotNewsDto.toEntity(
+    category: String,
+    source: String,
+    position: Int,
+    responseUpdateTime: String? = null,
+): NewsEntity {
     val idStr = id?.content ?: title.hashCode().toString()
     val layout = when {
         cover.isNullOrBlank() -> LayoutType.TEXT_ONLY
         position % 5 == 4 -> LayoutType.BIG_IMAGE
         else -> LayoutType.TEXT_WITH_THUMB
     }
-    val time = timestamp?.let {
-        try { sdf.format(Date(it)) } catch (_: Exception) { null }
-    }
+    val time = normalizePublishTime(responseUpdateTime)
+        ?: formatPublishTime(timestamp)
+        ?: formatNow()
     return NewsEntity(
         id = idStr,
         category = category,
@@ -66,6 +101,7 @@ fun NewsEntity.toDomain() = NewsItem(
     originalUrl = originalUrl,
     publishTime = publishTime,
     layoutType = layoutType,
+    cachedAt = cachedAt,
 )
 
 @Entity(tableName = "remote_keys")
@@ -74,3 +110,47 @@ data class RemoteKeysEntity(
     val nextPage: Int?,
     val lastUpdated: Long,
 )
+
+private fun formatPublishTime(timestamp: Long?): String? {
+    if (timestamp == null || timestamp <= 0L) return null
+
+    val candidates = buildList {
+        add(timestamp)
+        if (timestamp <= Long.MAX_VALUE / 1000L) add(timestamp * 1000L)
+        add(timestamp / 1000L)
+        add(timestamp / 1_000_000L)
+        add(timestamp / 1_000_000_000L)
+    }.distinct().filter { it > 0L }
+
+    val validMillis = candidates.firstOrNull(::isPlausibleEpochMillis) ?: return null
+    return sdf.format(validMillis)
+}
+
+private fun normalizePublishTime(rawTime: String?): String? {
+    val value = rawTime?.trim().orEmpty()
+    if (value.isBlank()) return null
+
+    val parsed = inputTimeFormats.firstNotNullOfOrNull { format ->
+        try {
+            format.parse(value)
+        } catch (_: Exception) {
+            null
+        }
+    } ?: return null
+
+    return sdf.format(parsed)
+}
+
+private fun formatNow(): String = sdf.format(System.currentTimeMillis())
+
+private fun isPlausibleEpochMillis(epochMillis: Long): Boolean {
+    return try {
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai"))
+        calendar.timeInMillis = epochMillis
+        val year = calendar.get(Calendar.YEAR)
+        val currentYear = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai")).get(Calendar.YEAR)
+        year in 2020..(currentYear + 1)
+    } catch (_: Exception) {
+        false
+    }
+}

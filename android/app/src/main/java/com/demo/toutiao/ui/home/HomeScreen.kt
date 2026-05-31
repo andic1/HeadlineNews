@@ -11,6 +11,9 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,6 +34,7 @@ fun HomeScreen(
     val initialIndex = tabs.indexOf(Categories.DEFAULT).coerceAtLeast(0)
     val pagerState = rememberPagerState(initialPage = initialIndex) { tabs.size }
     val scope = rememberCoroutineScope()
+    val dailyBriefState by viewModel.dailyBriefState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -57,7 +61,26 @@ fun HomeScreen(
         ) { pageIndex ->
             val category = tabs[pageIndex]
             val items = viewModel.pagingFlow(category).collectAsLazyPagingItems()
-            NewsList(items = items, modifier = Modifier.fillMaxSize(), onNewsClick = onNewsClick)
+            val snapshotItems = items.itemSnapshotList.items
+            val briefSignature = snapshotItems.take(15).joinToString("|") { it.id }
+
+            LaunchedEffect(category, briefSignature, pagerState.currentPage) {
+                if (pageIndex == pagerState.currentPage) {
+                    viewModel.loadDailyBrief(snapshotItems)
+                }
+            }
+
+            NewsList(
+                items = items,
+                category = category,
+                modifier = Modifier.fillMaxSize(),
+                header = {
+                    if (pageIndex == pagerState.currentPage) {
+                        AiBriefCard(state = dailyBriefState)
+                    }
+                },
+                onNewsClick = onNewsClick,
+            )
         }
     }
 }
