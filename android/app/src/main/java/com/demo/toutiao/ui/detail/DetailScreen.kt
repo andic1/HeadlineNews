@@ -19,6 +19,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,6 +35,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Share
@@ -46,6 +51,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -67,9 +73,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.demo.toutiao.data.api.AiChatResponse
 import com.demo.toutiao.data.api.AiSummaryResponse
 import com.demo.toutiao.data.model.NewsItem
+import com.demo.toutiao.ui.ai.AiChatMessage
+import com.demo.toutiao.ui.ai.AiChatRole
 import com.demo.toutiao.ui.ai.AiUiState
 import com.demo.toutiao.ui.theme.Bg
 import com.demo.toutiao.ui.theme.ShimmerBase
@@ -91,12 +98,14 @@ fun DetailScreen(
     val articleState by viewModel.state.collectAsState()
     val aiSummaryState by viewModel.summaryState.collectAsState()
     val aiChatState by viewModel.chatState.collectAsState()
+    val aiMessages by viewModel.messages.collectAsState()
 
     var isLoading by remember { mutableStateOf(true) }
     var progress by remember { mutableIntStateOf(0) }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
     var pageTitle by remember { mutableStateOf(newsItem.title.ifBlank { newsItem.source ?: "原文阅读" }) }
     var question by remember { mutableStateOf("") }
+    var aiPanelState by remember(newsItem.id) { mutableStateOf(AiAssistantPanelState.Collapsed) }
 
     LaunchedEffect(newsItem.id) {
         viewModel.loadArticle(newsItem)
@@ -236,17 +245,114 @@ fun DetailScreen(
                 )
             }
 
-            AiDetailPanel(
-                summaryState = aiSummaryState,
-                chatState = aiChatState,
-                question = question,
-                onQuestionChange = { question = it },
-                onAsk = {
-                    viewModel.askAi(question)
-                    question = ""
+            when (aiPanelState) {
+                AiAssistantPanelState.Closed -> AiAssistantReopenButton(
+                    onOpen = { aiPanelState = AiAssistantPanelState.Collapsed },
+                    modifier = Modifier.align(Alignment.BottomEnd),
+                )
+
+                AiAssistantPanelState.Collapsed -> AiAssistantCollapsedBar(
+                    summaryState = aiSummaryState,
+                    onExpand = { aiPanelState = AiAssistantPanelState.Expanded },
+                    onClose = { aiPanelState = AiAssistantPanelState.Closed },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+
+                AiAssistantPanelState.Expanded -> AiDetailPanel(
+                    summaryState = aiSummaryState,
+                    chatState = aiChatState,
+                    messages = aiMessages,
+                    question = question,
+                    onQuestionChange = { question = it },
+                    onAsk = {
+                        viewModel.askAi(question)
+                        question = ""
+                    },
+                    onAskQuick = { quickQuestion ->
+                        viewModel.askAi(quickQuestion)
+                    },
+                    onCollapse = { aiPanelState = AiAssistantPanelState.Collapsed },
+                    onClose = { aiPanelState = AiAssistantPanelState.Closed },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
+        }
+    }
+}
+
+private enum class AiAssistantPanelState {
+    Collapsed,
+    Expanded,
+    Closed,
+}
+
+@Composable
+private fun AiAssistantReopenButton(onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .padding(14.dp)
+            .background(ToutiaoRed, RoundedCornerShape(999.dp))
+            .clickable(onClick = onOpen)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.AutoAwesome,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = "AI",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+            modifier = Modifier.padding(start = 4.dp),
+        )
+    }
+}
+
+@Composable
+private fun AiAssistantCollapsedBar(
+    summaryState: AiUiState<AiSummaryResponse>,
+    onExpand: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .background(Color.White.copy(alpha = 0.97f), RoundedCornerShape(22.dp))
+            .clickable(onClick = onExpand)
+            .padding(start = 14.dp, top = 10.dp, end = 6.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.AutoAwesome,
+            contentDescription = null,
+            tint = ToutiaoRed,
+            modifier = Modifier.size(20.dp),
+        )
+        Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+            Text("AI 阅读助手", color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = when (summaryState) {
+                    AiUiState.Idle, AiUiState.Loading -> "正在理解这篇新闻，点开可继续追问"
+                    is AiUiState.Error -> "AI 暂时不可用，点开可重试提问"
+                    is AiUiState.Success -> summaryState.data.summary.ifBlank { "点开查看速读和继续追问" }
                 },
-                modifier = Modifier.align(Alignment.BottomCenter),
+                color = TextCaption,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+        }
+        IconButton(onClick = onExpand) {
+            Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "展开", tint = TextSecondary)
+        }
+        IconButton(onClick = onClose) {
+            Icon(Icons.Filled.Close, contentDescription = "关闭", tint = TextSecondary)
         }
     }
 }
@@ -254,10 +360,14 @@ fun DetailScreen(
 @Composable
 private fun AiDetailPanel(
     summaryState: AiUiState<AiSummaryResponse>,
-    chatState: AiUiState<AiChatResponse>,
+    chatState: AiUiState<String>,
+    messages: List<AiChatMessage>,
     question: String,
     onQuestionChange: (String) -> Unit,
     onAsk: () -> Unit,
+    onAskQuick: (String) -> Unit,
+    onCollapse: () -> Unit,
+    onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -281,6 +391,13 @@ private fun AiDetailPanel(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 6.dp),
             )
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = onCollapse) {
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "收起", tint = TextSecondary)
+            }
+            IconButton(onClick = onClose) {
+                Icon(Icons.Filled.Close, contentDescription = "关闭", tint = TextSecondary)
+            }
         }
         Spacer(Modifier.height(8.dp))
 
@@ -328,16 +445,12 @@ private fun AiDetailPanel(
             }
         }
 
-        if (chatState is AiUiState.Success && chatState.data.answer.isNotBlank()) {
+        if (messages.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
-            Text(
-                text = chatState.data.answer,
-                color = TextSecondary,
-                fontSize = 12.sp,
-                lineHeight = 18.sp,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
+            messages.takeLast(4).forEach { message ->
+                AiMessageBubble(message)
+                Spacer(Modifier.height(6.dp))
+            }
         } else if (chatState is AiUiState.Error) {
             Spacer(Modifier.height(8.dp))
             Text(
@@ -348,7 +461,17 @@ private fun AiDetailPanel(
             )
         }
 
+        if (chatState is AiUiState.Loading) {
+            Spacer(Modifier.height(8.dp))
+            Text("AI 正在思考...", color = TextCaption, fontSize = 12.sp)
+        }
+
         Spacer(Modifier.height(10.dp))
+        QuickQuestionRow(
+            enabled = chatState !is AiUiState.Loading,
+            onAskQuestion = onAskQuick,
+        )
+        Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = question,
@@ -380,6 +503,48 @@ private fun AiDetailPanel(
                         tint = Color.White,
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiMessageBubble(message: AiChatMessage) {
+    val isUser = message.role == AiChatRole.User
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
+    ) {
+        Text(
+            text = message.text,
+            color = if (isUser) Color.White else TextPrimary,
+            fontSize = 12.sp,
+            lineHeight = 18.sp,
+            modifier = Modifier
+                .fillMaxWidth(0.82f)
+                .background(
+                    color = if (isUser) ToutiaoRed else Color(0xFFF5F7FA),
+                    shape = RoundedCornerShape(
+                        topStart = 14.dp,
+                        topEnd = 14.dp,
+                        bottomStart = if (isUser) 14.dp else 4.dp,
+                        bottomEnd = if (isUser) 4.dp else 14.dp,
+                    ),
+                )
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+    }
+}
+
+@Composable
+private fun QuickQuestionRow(enabled: Boolean, onAskQuestion: (String) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf("一句话讲清楚", "影响是什么", "我该关注什么").forEach { text ->
+            TextButton(
+                enabled = enabled,
+                onClick = { onAskQuestion(text) },
+            ) {
+                Text(text, color = ToutiaoRed, fontSize = 12.sp)
             }
         }
     }

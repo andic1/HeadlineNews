@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,7 +32,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.demo.toutiao.data.api.AiBriefItem
 import com.demo.toutiao.data.api.AiDailyBriefResponse
+import com.demo.toutiao.data.model.LayoutType
+import com.demo.toutiao.data.model.NewsItem
 import com.demo.toutiao.ui.ai.AiUiState
 import com.demo.toutiao.ui.theme.ShimmerBase
 import com.demo.toutiao.ui.theme.ShimmerHighlight
@@ -44,6 +48,7 @@ import com.demo.toutiao.ui.theme.ToutiaoRed
 fun AiBriefCard(
     state: AiUiState<AiDailyBriefResponse>,
     modifier: Modifier = Modifier,
+    onItemClick: (AiBriefItem) -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -101,8 +106,8 @@ fun AiBriefCard(
                 state.data.items.take(3).forEachIndexed { index, item ->
                     BriefLine(
                         index = index + 1,
-                        title = item.title,
-                        reason = item.reason,
+                        item = item,
+                        onClick = { onItemClick(item) },
                     )
                     if (index < state.data.items.take(3).lastIndex) {
                         Spacer(Modifier.height(10.dp))
@@ -114,8 +119,14 @@ fun AiBriefCard(
 }
 
 @Composable
-private fun BriefLine(index: Int, title: String, reason: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+private fun BriefLine(index: Int, item: AiBriefItem, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         Text(
             text = index.toString().padStart(2, '0'),
             color = ToutiaoRed,
@@ -124,16 +135,16 @@ private fun BriefLine(index: Int, title: String, reason: String) {
         )
         Column {
             Text(
-                text = title,
+                text = item.title,
                 color = TextPrimary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (reason.isNotBlank()) {
+            if (item.reason.isNotBlank()) {
                 Text(
-                    text = reason,
+                    text = item.reason,
                     color = TextSecondary,
                     fontSize = 12.sp,
                     lineHeight = 18.sp,
@@ -143,6 +154,21 @@ private fun BriefLine(index: Int, title: String, reason: String) {
             }
         }
     }
+}
+
+fun AiBriefItem.toFallbackNewsItem(category: String): NewsItem {
+    val stableId = newsId.ifBlank { url ?: title }
+    return NewsItem(
+        id = stableId,
+        category = category,
+        title = title,
+        description = reason,
+        source = source,
+        imageUrl = imageUrl,
+        originalUrl = url,
+        publishTime = publishTime,
+        layoutType = LayoutType.TEXT_ONLY,
+    )
 }
 
 @Composable

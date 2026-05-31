@@ -3,8 +3,12 @@ package com.demo.toutiao.data.repo
 import com.demo.toutiao.data.api.AiApi
 import com.demo.toutiao.data.api.AiChatRequest
 import com.demo.toutiao.data.api.AiChatResponse
+import com.demo.toutiao.data.api.AiChatMessageRequest
+import com.demo.toutiao.data.api.AiChatMessageResponse
 import com.demo.toutiao.data.api.AiDailyBriefRequest
 import com.demo.toutiao.data.api.AiDailyBriefResponse
+import com.demo.toutiao.data.api.AiNewsRankRequest
+import com.demo.toutiao.data.api.AiNewsRankResponse
 import com.demo.toutiao.data.api.AiSummaryRequest
 import com.demo.toutiao.data.api.AiSummaryResponse
 import com.demo.toutiao.data.model.LayoutType
@@ -15,10 +19,10 @@ import org.junit.Test
 
 class AiRepositoryTest {
     @Test
-    fun `daily brief only sends first fifteen items`() = runTest {
+    fun `news rank only sends first fifty items`() = runTest {
         val api = FakeAiApi()
         val repo = AiRepository(api)
-        val items = (1..20).map { index ->
+        val items = (1..60).map { index ->
             NewsItem(
                 id = index.toString(),
                 category = "推荐",
@@ -34,9 +38,9 @@ class AiRepositoryTest {
 
         repo.dailyBrief(items)
 
-        assertEquals(15, api.dailyBriefRequest?.items?.size)
-        assertEquals("新闻1", api.dailyBriefRequest?.items?.first()?.title)
-        assertEquals("新闻15", api.dailyBriefRequest?.items?.last()?.title)
+        assertEquals(50, api.newsRankRequest?.items?.size)
+        assertEquals("新闻1", api.newsRankRequest?.items?.first()?.title)
+        assertEquals("新闻50", api.newsRankRequest?.items?.last()?.title)
     }
 
     @Test
@@ -56,14 +60,41 @@ class AiRepositoryTest {
         val payload = item.toAiPayload()
 
         assertEquals("标题", payload.title)
+        assertEquals("1", payload.id)
         assertEquals("来源", payload.source)
         assertEquals("https://example.com/news", payload.url)
         assertEquals("正文", payload.content)
+    }
+
+    @Test
+    fun `news rank sends clickable news payloads`() = runTest {
+        val api = FakeAiApi()
+        val repo = AiRepository(api)
+        val item = NewsItem(
+            id = "rank-1",
+            category = "推荐",
+            title = "值得看的新闻",
+            description = "新闻正文",
+            source = "今日头条",
+            imageUrl = "https://example.com/cover.jpg",
+            originalUrl = "https://example.com/news",
+            publishTime = "2026-05-31 12:00",
+            layoutType = LayoutType.TEXT_WITH_THUMB,
+        )
+
+        repo.dailyBrief(listOf(item))
+
+        val payload = api.newsRankRequest?.items?.single()
+        assertEquals("rank-1", payload?.id)
+        assertEquals("推荐", payload?.category)
+        assertEquals("https://example.com/news", payload?.url)
+        assertEquals("https://example.com/cover.jpg", payload?.imageUrl)
     }
 }
 
 private class FakeAiApi : AiApi {
     var dailyBriefRequest: AiDailyBriefRequest? = null
+    var newsRankRequest: AiNewsRankRequest? = null
 
     override suspend fun summarize(
         appToken: String,
@@ -78,8 +109,21 @@ private class FakeAiApi : AiApi {
         return AiDailyBriefResponse()
     }
 
+    override suspend fun newsRank(
+        appToken: String,
+        request: AiNewsRankRequest,
+    ): AiNewsRankResponse {
+        newsRankRequest = request
+        return AiNewsRankResponse()
+    }
+
     override suspend fun chat(
         appToken: String,
         request: AiChatRequest,
     ): AiChatResponse = AiChatResponse()
+
+    override suspend fun chatMessage(
+        appToken: String,
+        request: AiChatMessageRequest,
+    ): AiChatMessageResponse = AiChatMessageResponse()
 }

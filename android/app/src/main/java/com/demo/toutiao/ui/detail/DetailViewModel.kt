@@ -2,12 +2,14 @@ package com.demo.toutiao.ui.detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.demo.toutiao.data.api.AiChatResponse
 import com.demo.toutiao.data.api.AiSummaryResponse
 import com.demo.toutiao.data.model.NewsItem
 import com.demo.toutiao.data.repo.AiRepository
+import com.demo.toutiao.ui.ai.AiChatMessage
+import com.demo.toutiao.ui.ai.AiChatRole
 import com.demo.toutiao.ui.ai.AiUiState
 import com.demo.toutiao.ui.ai.toUserMessage
+import com.demo.toutiao.ui.ai.toApiTurns
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,13 +33,18 @@ class DetailViewModel @Inject constructor(
     private val _summaryState = MutableStateFlow<AiUiState<AiSummaryResponse>>(AiUiState.Idle)
     val summaryState: StateFlow<AiUiState<AiSummaryResponse>> = _summaryState
 
-    private val _chatState = MutableStateFlow<AiUiState<AiChatResponse>>(AiUiState.Idle)
-    val chatState: StateFlow<AiUiState<AiChatResponse>> = _chatState
+    private val _chatState = MutableStateFlow<AiUiState<String>>(AiUiState.Idle)
+    val chatState: StateFlow<AiUiState<String>> = _chatState
+
+    private val _messages = MutableStateFlow<List<AiChatMessage>>(emptyList())
+    val messages: StateFlow<List<AiChatMessage>> = _messages
 
     private var currentItem: NewsItem? = null
 
     fun loadArticle(newsItem: NewsItem) {
         currentItem = newsItem
+        _messages.value = emptyList()
+        _chatState.value = AiUiState.Idle
         loadAiSummary(newsItem)
 
         val url = newsItem.originalUrl.orEmpty().trim()
@@ -60,13 +67,30 @@ class DetailViewModel @Inject constructor(
         val cleanQuestion = question.trim()
         if (cleanQuestion.isBlank()) return
 
+        val previousMessages = _messages.value
+        _messages.value = previousMessages + AiChatMessage(AiChatRole.User, cleanQuestion)
+
         viewModelScope.launch {
             _chatState.value = AiUiState.Loading
             _chatState.value = runCatching {
-                aiRepo.chat(item, cleanQuestion)
+                aiRepo.chatMessage(
+                    item = item,
+                    question = cleanQuestion,
+                    history = previousMessages.toApiTurns(),
+                )
             }.fold(
-                onSuccess = { AiUiState.Success(it) },
-                onFailure = { AiUiState.Error(it.toUserMessage()) },
+                onSuccess = { response ->
+                    if (response.answer.isNotBlank()) {
+                        _messages.value = _messages.value + AiChatMessage(
+                            role = AiChatRole.Assistant,
+                            text = response.answer,
+                        )
+                    }
+                    AiUiState.Success(response.answer)
+                },
+                onFailure = { error ->
+                    AiUiState.Error(error.toUserMessage())
+                },
             )
         }
     }

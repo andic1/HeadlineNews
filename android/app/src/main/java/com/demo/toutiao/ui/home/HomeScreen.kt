@@ -76,7 +76,16 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize(),
                 header = {
                     if (pageIndex == pagerState.currentPage) {
-                        AiBriefCard(state = dailyBriefState)
+                        AiBriefCard(
+                            state = dailyBriefState,
+                            onItemClick = { briefItem ->
+                                val matched = snapshotItems.firstOrNull { item ->
+                                    item.id == briefItem.newsId ||
+                                        (!briefItem.url.isNullOrBlank() && item.originalUrl == briefItem.url)
+                                }
+                                onNewsClick(matched ?: briefItem.toFallbackNewsItem(category))
+                            },
+                        )
                     }
                 },
                 onNewsClick = onNewsClick,
