@@ -1,5 +1,7 @@
 package com.demo.toutiao.ui.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -17,14 +19,27 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -37,6 +52,7 @@ import com.demo.toutiao.data.api.AiDailyBriefResponse
 import com.demo.toutiao.data.model.LayoutType
 import com.demo.toutiao.data.model.NewsItem
 import com.demo.toutiao.ui.ai.AiUiState
+import com.demo.toutiao.ui.theme.CardBg
 import com.demo.toutiao.ui.theme.ShimmerBase
 import com.demo.toutiao.ui.theme.ShimmerHighlight
 import com.demo.toutiao.ui.theme.TextCaption
@@ -50,67 +66,55 @@ fun AiBriefCard(
     modifier: Modifier = Modifier,
     onItemClick: (AiBriefItem) -> Unit = {},
 ) {
+    var isExpanded by rememberSaveable { mutableStateOf(true) }
+    var isDismissed by rememberSaveable { mutableStateOf(false) }
+    if (isDismissed) return
+
     Column(
         modifier = modifier
             .padding(horizontal = 12.dp, vertical = 8.dp)
             .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
             .background(
                 brush = Brush.linearGradient(
-                    colors = listOf(Color(0xFFFFF7F0), Color(0xFFF7FBFF)),
+                    colors = listOf(Color(0xFFFFF4EE), Color(0xFFF3FAFF)),
                     start = Offset.Zero,
-                    end = Offset(700f, 320f),
+                    end = Offset(760f, 320f),
                 ),
-                shape = RoundedCornerShape(22.dp),
             )
-            .border(1.dp, Color(0x14D63B30), RoundedCornerShape(22.dp))
+            .border(1.dp, ToutiaoRed.copy(alpha = 0.10f), RoundedCornerShape(24.dp))
+            .clickable { isExpanded = !isExpanded }
+            .animateContentSize(animationSpec = tween(220))
             .padding(16.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .background(ToutiaoRed.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
-                    .padding(8.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.AutoAwesome,
-                    contentDescription = null,
-                    tint = ToutiaoRed,
-                )
-            }
-            Column(modifier = Modifier.padding(start = 10.dp)) {
-                Text(
-                    text = "AI 今日速读",
-                    color = TextPrimary,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "从当前新闻流里提炼真正值得看的重点",
-                    color = TextCaption,
-                    fontSize = 12.sp,
-                )
-            }
-        }
+        AiBriefHeader(
+            isExpanded = isExpanded,
+            onToggle = { isExpanded = !isExpanded },
+            onDismiss = { isDismissed = true },
+        )
 
-        Spacer(Modifier.height(12.dp))
-
-        when (state) {
-            AiUiState.Idle, AiUiState.Loading -> AiBriefSkeleton()
-            is AiUiState.Error -> Text(
-                text = state.message,
-                color = TextSecondary,
-                fontSize = 13.sp,
-                lineHeight = 19.sp,
-            )
-            is AiUiState.Success -> {
-                state.data.items.take(3).forEachIndexed { index, item ->
-                    BriefLine(
-                        index = index + 1,
-                        item = item,
-                        onClick = { onItemClick(item) },
-                    )
-                    if (index < state.data.items.take(3).lastIndex) {
-                        Spacer(Modifier.height(10.dp))
+        AnimatedVisibility(visible = isExpanded) {
+            Column {
+                Spacer(Modifier.height(13.dp))
+                when (state) {
+                    AiUiState.Idle, AiUiState.Loading -> AiBriefSkeleton()
+                    is AiUiState.Error -> AiBriefError(state.message)
+                    is AiUiState.Success -> {
+                        val briefItems = state.data.items.take(3)
+                        if (briefItems.isEmpty()) {
+                            AiBriefError("\u6682\u65f6\u6ca1\u6709\u8db3\u591f\u70ed\u70b9\u53ef\u4ee5\u901f\u8bfb")
+                        } else {
+                            briefItems.forEachIndexed { index, item ->
+                                BriefLine(
+                                    index = index + 1,
+                                    item = item,
+                                    onClick = { onItemClick(item) },
+                                )
+                                if (index < briefItems.lastIndex) {
+                                    Spacer(Modifier.height(10.dp))
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -119,30 +123,121 @@ fun AiBriefCard(
 }
 
 @Composable
+private fun AiBriefHeader(
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .background(ToutiaoRed.copy(alpha = 0.12f), RoundedCornerShape(14.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.AutoAwesome,
+                contentDescription = null,
+                tint = ToutiaoRed,
+                modifier = Modifier.size(24.dp),
+            )
+        }
+        Column(
+            modifier = Modifier
+                .padding(start = 11.dp)
+                .weight(1f),
+        ) {
+            Text(
+                text = "AI \u4eca\u65e5\u901f\u8bfb",
+                color = TextPrimary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black,
+                maxLines = 1,
+            )
+            Text(
+                text = if (isExpanded) {
+                    "\u4ece\u5f53\u524d\u65b0\u95fb\u6d41\u91cc\u63d0\u70bc\u771f\u6b63\u503c\u5f97\u770b\u7684\u91cd\u70b9"
+                } else {
+                    "\u5df2\u6536\u8d77\uff0c\u70b9\u51fb\u5c55\u5f00"
+                },
+                color = TextCaption,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        HeaderIconButton(
+            icon = if (isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+            contentDescription = if (isExpanded) "\u6536\u8d77 AI \u901f\u8bfb" else "\u5c55\u5f00 AI \u901f\u8bfb",
+            onClick = onToggle,
+        )
+        HeaderIconButton(
+            icon = Icons.Outlined.Close,
+            contentDescription = "\u5173\u95ed AI \u901f\u8bfb",
+            onClick = onDismiss,
+        )
+    }
+}
+
+@Composable
+private fun HeaderIconButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(38.dp)
+            .clip(CircleShape)
+            .background(CardBg.copy(alpha = 0.72f)),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = TextSecondary,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+@Composable
+private fun AiBriefError(message: String) {
+    Text(
+        text = message,
+        color = TextSecondary,
+        fontSize = 13.sp,
+        lineHeight = 19.sp,
+    )
+}
+
+@Composable
 private fun BriefLine(index: Int, item: AiBriefItem, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
-            .padding(vertical = 3.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(horizontal = 2.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(11.dp),
     ) {
         Text(
             text = index.toString().padStart(2, '0'),
             color = ToutiaoRed,
             fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.Black,
         )
         Column {
             Text(
                 text = item.title,
                 color = TextPrimary,
                 fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             if (item.reason.isNotBlank()) {
+                Spacer(Modifier.height(2.dp))
                 Text(
                     text = item.reason,
                     color = TextSecondary,
@@ -178,7 +273,7 @@ private fun AiBriefSkeleton() {
         initialValue = 0f,
         targetValue = 800f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1100, easing = LinearEasing),
+            animation = tween(950, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "aiBriefSkeletonOffset",
@@ -189,12 +284,21 @@ private fun AiBriefSkeleton() {
         end = Offset(offset.value, 0f),
     )
     repeat(3) { index ->
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(if (index == 2) 0.7f else 1f)
-                .height(14.dp)
-                .background(brush, RoundedCornerShape(8.dp)),
-        )
-        if (index < 2) Spacer(Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .width(24.dp)
+                    .height(12.dp)
+                    .background(brush, RoundedCornerShape(8.dp)),
+            )
+            Spacer(Modifier.width(10.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(if (index == 2) 0.72f else 1f)
+                    .height(14.dp)
+                    .background(brush, RoundedCornerShape(8.dp)),
+            )
+        }
+        if (index < 2) Spacer(Modifier.height(12.dp))
     }
 }

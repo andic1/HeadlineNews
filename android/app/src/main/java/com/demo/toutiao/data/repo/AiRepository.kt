@@ -13,6 +13,8 @@ import com.demo.toutiao.data.api.AiNewsPayload
 import com.demo.toutiao.data.api.AiNewsRankRequest
 import com.demo.toutiao.data.api.AiSummaryRequest
 import com.demo.toutiao.data.api.AiSummaryResponse
+import com.demo.toutiao.data.api.ArticleExtractRequest
+import com.demo.toutiao.data.api.ArticleExtractResponse
 import com.demo.toutiao.data.model.NewsItem
 import com.demo.toutiao.data.model.displayPublishTime
 import javax.inject.Inject
@@ -29,7 +31,10 @@ class AiRepository @Inject constructor(
     suspend fun dailyBrief(items: List<NewsItem>): AiDailyBriefResponse {
         return api.newsRank(
             BuildConfig.AI_APP_TOKEN,
-            AiNewsRankRequest(items.take(50).map { it.toAiPayload() }),
+            AiNewsRankRequest(
+                items = items.take(15).map { it.toAiPayload() },
+                maxItems = 3,
+            ),
         )
     }
 
@@ -52,6 +57,13 @@ class AiRepository @Inject constructor(
                 question = question,
                 history = history.takeLast(8),
             ),
+        )
+    }
+
+    suspend fun extractArticle(item: NewsItem): ArticleExtractResponse {
+        return api.extractArticle(
+            BuildConfig.AI_APP_TOKEN,
+            ArticleExtractRequest(item.toAiPayload(maxDescriptionLength = 6000)),
         )
     }
 }

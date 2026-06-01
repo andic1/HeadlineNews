@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -16,12 +15,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.demo.toutiao.data.model.Categories
 import com.demo.toutiao.data.model.NewsItem
 import com.demo.toutiao.ui.theme.Bg
+import com.demo.toutiao.ui.theme.TopBarBg
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -36,9 +35,13 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val dailyBriefState by viewModel.dailyBriefState.collectAsState()
 
+    LaunchedEffect(Unit) {
+        viewModel.warmUpCategories()
+    }
+
     Scaffold(
         topBar = {
-            Column(modifier = Modifier.background(Color.White)) {
+            Column(modifier = Modifier.background(TopBarBg)) {
                 HomeTopBar()
                 CategoryTabRow(
                     tabs = tabs,
@@ -57,7 +60,7 @@ fun HomeScreen(
                 .padding(padding)
                 .background(Bg),
             key = { tabs[it] },
-            beyondBoundsPageCount = 1,
+            beyondBoundsPageCount = tabs.lastIndex.coerceAtLeast(0),
         ) { pageIndex ->
             val category = tabs[pageIndex]
             val items = viewModel.pagingFlow(category).collectAsLazyPagingItems()
@@ -87,6 +90,9 @@ fun HomeScreen(
                             },
                         )
                     }
+                },
+                onRefresh = {
+                    viewModel.refreshCategory(category)
                 },
                 onNewsClick = onNewsClick,
             )

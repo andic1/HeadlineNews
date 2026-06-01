@@ -14,12 +14,14 @@ object Categories {
     val ALL = listOf(FOLLOWING, RECOMMEND, HOT, TRENDING)
     const val DEFAULT = RECOMMEND
 
+    val ALL_PLATFORMS = listOf("v2ex", "thepaper", "zhihu", "geekpark", "tieba")
+
     fun platformsFor(category: String): List<String> = when (category) {
-        FOLLOWING -> listOf("thepaper")
-        RECOMMEND -> listOf("toutiao")
-        HOT -> listOf("zhihu")
-        TRENDING -> listOf("toutiao", "thepaper", "zhihu", "geekpark", "tieba")
-        else -> listOf("toutiao")
+        FOLLOWING -> listOf("v2ex", "zhihu", "thepaper", "geekpark", "tieba")
+        RECOMMEND -> listOf("thepaper", "geekpark", "v2ex", "tieba", "zhihu")
+        HOT -> listOf("zhihu", "tieba", "v2ex", "thepaper", "geekpark")
+        TRENDING -> listOf("geekpark", "v2ex", "tieba", "zhihu", "thepaper")
+        else -> ALL_PLATFORMS
     }
 }
 

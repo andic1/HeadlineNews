@@ -48,6 +48,11 @@ class HomeViewModel @Inject constructor(
         _selectedItem.value = item
     }
 
+    suspend fun refreshCategory(category: String) {
+        repo.reshuffleCached(category)
+        resetDailyBrief()
+    }
+
     fun loadDailyBrief(items: List<NewsItem>) {
         val candidates = items.take(15).filter { it.title.isNotBlank() }
         if (candidates.size < 5) return
@@ -64,6 +69,20 @@ class HomeViewModel @Inject constructor(
                 onSuccess = { AiUiState.Success(it) },
                 onFailure = { AiUiState.Error(it.toUserMessage()) },
             )
+        }
+    }
+
+    fun resetDailyBrief() {
+        lastBriefSignature = null
+        _dailyBriefState.value = AiUiState.Idle
+    }
+
+    fun warmUpCategories() {
+        categories.forEach { category ->
+            pagingFlow(category)
+            viewModelScope.launch {
+                runCatching { repo.prefetchCategory(category) }
+            }
         }
     }
 }

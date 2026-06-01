@@ -35,6 +35,12 @@ interface AiApi {
         @Header("X-App-Token") appToken: String,
         @Body request: AiChatMessageRequest,
     ): AiChatMessageResponse
+
+    @POST("/api/article/extract")
+    suspend fun extractArticle(
+        @Header("X-App-Token") appToken: String,
+        @Body request: ArticleExtractRequest,
+    ): ArticleExtractResponse
 }
 
 @Serializable
@@ -127,6 +133,40 @@ data class AiChatMessageRequest(
 data class AiChatMessageResponse(
     val answer: String = "",
     val suggestedQuestions: List<String> = emptyList(),
+    val sources: List<AiSource> = emptyList(),
     val provider: String = "",
     val model: String = "",
+    val cached: Boolean = false,
+)
+
+@Serializable
+data class AiSource(
+    val title: String = "",
+    val url: String = "",
+    val snippet: String = "",
+)
+
+@Serializable
+data class ArticleExtractRequest(
+    val news: AiNewsPayload,
+)
+
+@Serializable
+data class ArticleExtractResponse(
+    val success: Boolean = false,
+    val title: String = "",
+    val source: String? = null,
+    val publishTime: String? = null,
+    val url: String? = null,
+    val imageUrl: String? = null,
+    val blocks: List<ArticleBlock> = emptyList(),
+    val cached: Boolean = false,
+)
+
+@Serializable
+data class ArticleBlock(
+    val type: String = "text",
+    val text: String? = null,
+    val url: String? = null,
+    val alt: String? = null,
 )

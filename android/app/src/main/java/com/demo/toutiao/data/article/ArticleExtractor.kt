@@ -119,6 +119,23 @@ class ArticleExtractor @Inject constructor(
                 ".news_part_father",
                 ".newsdetail_content",
             )
+            url.contains("v2ex.com") -> listOf(
+                ".topic_content",
+                ".markdown_body",
+                "#Main .box",
+                ".cell",
+            )
+            url.contains("geekpark.net") || url.contains("geekpark.cn") -> listOf(
+                "article",
+                ".article-content",
+                ".post-content",
+                ".content",
+            )
+            url.contains("tieba.baidu.com") -> listOf(
+                ".p_postlist",
+                ".d_post_content",
+                ".mainContent",
+            )
             url.contains("baidu.com") -> listOf(
                 ".mainContent",
                 "#article",

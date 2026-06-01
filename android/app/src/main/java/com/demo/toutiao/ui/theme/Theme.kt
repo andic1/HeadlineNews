@@ -5,20 +5,20 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-val ToutiaoRed = Color(0xFFD63B30)
-val ToutiaoRedLight = Color(0xFFE85D52)
-val ToutiaoRedBg = Color(0xFFFEF2F2)
-val Bg = Color(0xFFF7F8FA)
-val CardBg = Color.White
-val TextPrimary = Color(0xFF111827)
-val TextSecondary = Color(0xFF4B5563)
-val TextCaption = Color(0xFF6B7280)
-val DividerColor = Color(0xFFE5E7EB)
-val TopBarBg = Color.White
-val TabIndicatorColor = Color(0xFFD63B30)
-val SearchBarBg = Color(0xFFF3F5F8)
-val ShimmerBase = Color(0xFFEAECEF)
-val ShimmerHighlight = Color(0xFFF7F8FA)
+val ToutiaoRed = Color(0xFFE23D31)
+val ToutiaoRedLight = Color(0xFFFF725E)
+val ToutiaoRedBg = Color(0xFFFFF1ED)
+val Bg = Color(0xFFF4F1EA)
+val CardBg = Color(0xFFFFFCF7)
+val TextPrimary = Color(0xFF171512)
+val TextSecondary = Color(0xFF575047)
+val TextCaption = Color(0xFF8A8175)
+val DividerColor = Color(0x1A171512)
+val TopBarBg = Color(0xFFFFFCF7)
+val TabIndicatorColor = Color(0xFFE23D31)
+val SearchBarBg = Color(0xFFF1E9DD)
+val ShimmerBase = Color(0xFFE9E0D3)
+val ShimmerHighlight = Color(0xFFFFFBF4)
 
 private val LightColors = lightColorScheme(
     primary = ToutiaoRed,

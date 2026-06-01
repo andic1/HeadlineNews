@@ -1,17 +1,16 @@
 package com.demo.toutiao.ui.home
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,11 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.demo.toutiao.ui.theme.DividerColor
-import com.demo.toutiao.ui.theme.TabIndicatorColor
+import com.demo.toutiao.ui.theme.TextCaption
 import com.demo.toutiao.ui.theme.TextPrimary
-import com.demo.toutiao.ui.theme.TextSecondary
+import com.demo.toutiao.ui.theme.TopBarBg
+import com.demo.toutiao.ui.theme.ToutiaoRed
 
-/** 白底分类栏：选中项红色加粗 + 红色短下划线指示器 */
 @Composable
 fun CategoryTabRow(
     tabs: List<String>,
@@ -35,43 +34,51 @@ fun CategoryTabRow(
 ) {
     ScrollableTabRow(
         selectedTabIndex = selectedIndex,
-        edgePadding = 12.dp,
-        containerColor = Color.White,
+        edgePadding = 14.dp,
+        containerColor = TopBarBg,
         contentColor = TextPrimary,
-        indicator = { tabPositions ->
-            if (selectedIndex < tabPositions.size) {
-                TabRowDefaults.SecondaryIndicator(
-                    modifier = Modifier
-                        .tabIndicatorOffset(tabPositions[selectedIndex])
-                        .padding(horizontal = 14.dp)
-                        .clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)),
-                    height = 3.dp,
-                    color = TabIndicatorColor,
-                )
-            }
-        },
+        indicator = {},
         divider = {
-            HorizontalDivider(color = DividerColor, thickness = 0.5.dp)
+            HorizontalDivider(color = DividerColor, thickness = 0.6.dp)
         },
     ) {
         tabs.forEachIndexed { i, name ->
             val isSelected = i == selectedIndex
-            val textColor by animateColorAsState(
-                targetValue = if (isSelected) TabIndicatorColor else TextSecondary,
-                animationSpec = tween(200),
-                label = "tabColor",
+            val chipColor by animateColorAsState(
+                targetValue = if (isSelected) ToutiaoRed else Color.Transparent,
+                animationSpec = tween(180),
+                label = "tabChipColor",
             )
+            val textColor by animateColorAsState(
+                targetValue = if (isSelected) Color.White else TextCaption,
+                animationSpec = tween(180),
+                label = "tabTextColor",
+            )
+            val horizontalPadding by animateDpAsState(
+                targetValue = if (isSelected) 17.dp else 13.dp,
+                animationSpec = tween(180),
+                label = "tabPadding",
+            )
+
             Tab(
                 selected = isSelected,
                 onClick = { onSelect(i) },
-                modifier = Modifier.padding(horizontal = 4.dp),
+                modifier = Modifier.padding(horizontal = 3.dp, vertical = 7.dp),
                 text = {
-                    Text(
-                        text = name,
-                        fontSize = if (isSelected) 16.sp else 14.sp,
-                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Normal,
-                        color = textColor,
-                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(chipColor)
+                            .padding(horizontal = horizontalPadding, vertical = 8.dp),
+                    ) {
+                        Text(
+                            text = name,
+                            fontSize = if (isSelected) 15.sp else 14.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                            color = textColor,
+                            maxLines = 1,
+                        )
+                    }
                 },
             )
         }

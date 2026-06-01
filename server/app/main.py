@@ -5,12 +5,24 @@ import re
 import sqlite3
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
+from urllib.parse import quote_plus, urljoin
 
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError:  # pragma: no cover - optional in local lightweight installs
+    BeautifulSoup = None
+
+try:
+    from langgraph.graph import END, StateGraph
+except ImportError:  # pragma: no cover - the endpoint falls back to inline flow
+    END = None
+    StateGraph = None
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(BASE_DIR / ".env")
@@ -56,10 +68,35 @@ class ChatTurn(BaseModel):
     content: str = Field(min_length=1, max_length=2000)
 
 
+class SourcePayload(BaseModel):
+    title: str = Field(default="", max_length=200)
+    url: str = Field(default="", max_length=1000)
+    snippet: str = Field(default="", max_length=1000)
+
+
+class ArticleBlockPayload(BaseModel):
+    type: str = Field(default="text", max_length=20)
+    text: str | None = Field(default=None, max_length=3000)
+    url: str | None = Field(default=None, max_length=1000)
+    alt: str | None = Field(default=None, max_length=300)
+
+
 class ChatMessageRequest(BaseModel):
     news: NewsPayload
     question: str = Field(min_length=1, max_length=500)
     history: list[ChatTurn] = Field(default_factory=list, max_length=12)
+
+
+class ArticleExtractRequest(BaseModel):
+    news: NewsPayload
+
+
+class ArticleAgentState(TypedDict, total=False):
+    news: dict[str, Any]
+    question: str
+    history: list[dict[str, Any]]
+    sources: list[dict[str, str]]
+    result: dict[str, Any]
 
 
 def setting(name: str, default: str = "") -> str:
@@ -117,6 +154,31 @@ def max_tokens() -> int:
         return 900
 
 
+def chat_max_tokens() -> int:
+    try:
+        return max(240, min(int(setting("AI_CHAT_MAX_TOKENS", "520")), 900))
+    except ValueError:
+        return 520
+
+
+def web_search_enabled() -> bool:
+    return setting("AI_WEB_SEARCH_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
+
+
+def search_max_results() -> int:
+    try:
+        return max(1, min(int(setting("AI_SEARCH_MAX_RESULTS", "3")), 5))
+    except ValueError:
+        return 3
+
+
+def article_fetch_timeout() -> float:
+    try:
+        return max(2.0, min(float(setting("AI_ARTICLE_FETCH_TIMEOUT_SECONDS", "5")), 20.0))
+    except ValueError:
+        return 5.0
+
+
 def init_db() -> None:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
@@ -155,6 +217,58 @@ def set_cache(key: str, payload: dict[str, Any]) -> None:
             (key, json.dumps(payload, ensure_ascii=False), now + cache_ttl(), now),
         )
         conn.commit()
+
+
+def compact_history_for_cache(history: list[dict[str, Any]]) -> list[dict[str, str]]:
+    compact: list[dict[str, str]] = []
+    for turn in history[-6:]:
+        role = str(turn.get("role") or "").strip()
+        content = re.sub(r"\s+", " ", str(turn.get("content") or "").strip())
+        if role in {"user", "assistant"} and content:
+            compact.append({"role": role, "content": content[:500]})
+    return compact
+
+
+def content_fingerprint(news: dict[str, Any]) -> str:
+    content = re.sub(r"\s+", " ", str(news.get("content") or "").strip())
+    return hashlib.sha256(content[:6000].encode("utf-8")).hexdigest()
+
+
+def article_cache_key(url: str) -> str:
+    return cache_key("article-text", {"url": url})
+
+
+def article_detail_cache_key(url: str) -> str:
+    return cache_key("article-detail-v2", {"url": url})
+
+
+async def get_article_text(url: str | None) -> str:
+    clean_url = (url or "").strip()
+    if not clean_url:
+        return ""
+    cached = get_cache(article_cache_key(clean_url))
+    if cached:
+        return str(cached.get("text") or "")
+    fetched = await fetch_article_text(clean_url)
+    if fetched:
+        set_cache(article_cache_key(clean_url), {"text": fetched})
+    return fetched
+
+
+def chat_message_cache_key(news: dict[str, Any], question: str, history: list[dict[str, Any]]) -> str:
+    payload = {
+        "provider": provider(),
+        "model": model_name(),
+        "newsId": news.get("id") or "",
+        "url": news.get("url") or "",
+        "title": news.get("title") or "",
+        "source": news.get("source") or "",
+        "publishTime": news.get("publishTime") or "",
+        "contentHash": content_fingerprint(news),
+        "question": re.sub(r"\s+", " ", question.strip()),
+        "history": compact_history_for_cache(history),
+    }
+    return cache_key("chat-message", payload)
 
 
 def compact_news(news: dict[str, Any], max_content: int = 5000) -> str:
@@ -337,6 +451,574 @@ def build_chat_message_messages(
     ]
 
 
+def should_search_web(news: dict[str, Any], question: str) -> bool:
+    question_text = question.strip().lower()
+    if is_identity_question(question_text):
+        return False
+    search_keywords = [
+        "\u6700\u65b0",
+        "\u73b0\u5728",
+        "\u540e\u7eed",
+        "\u80cc\u666f",
+        "\u6765\u6e90",
+        "\u8054\u7f51",
+        "\u641c\u7d22",
+        "\u67e5\u4e00\u4e0b",
+        "latest",
+        "update",
+        "background",
+        "source",
+        "search",
+    ]
+    return any(keyword in question_text for keyword in search_keywords)
+
+
+def is_identity_question(question: str) -> bool:
+    text = question.strip().lower()
+    identity_phrases = [
+        "\u4f60\u662f\u4ec0\u4e48\u6a21\u578b",
+        "\u4f60\u662f\u54ea\u4e2a\u6a21\u578b",
+        "\u4f60\u662f\u8c01",
+        "\u4f60\u80fd\u505a\u4ec0\u4e48",
+        "\u4ec0\u4e48\u6a21\u578b",
+        "what model",
+        "who are you",
+    ]
+    return any(phrase in text for phrase in identity_phrases)
+
+
+def is_lightweight_chat_question(question: str) -> bool:
+    text = re.sub(r"\s+", "", question.strip().lower())
+    phrases = {
+        "\u4f60\u597d",
+        "hi",
+        "hello",
+        "\u5728\u5417",
+        "\u5e2e\u6211\u4e00\u4e0b",
+        "\u8c22\u8c22",
+        "thanks",
+    }
+    return text in phrases
+
+
+def build_lightweight_chat_response(news: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "answer": (
+            "\u6211\u5728\u3002\u4f60\u53ef\u4ee5\u76f4\u63a5\u95ee\u6211\u8fd9\u7bc7\u65b0\u95fb\u7684\u6838\u5fc3\u5185\u5bb9\u3001"
+            "\u5f71\u54cd\u3001\u80cc\u666f\u6216\u540e\u7eed\u503c\u5f97\u5173\u6ce8\u7684\u70b9\u3002"
+        ),
+        "suggestedQuestions": ["\u8bb2\u89e3\u4e00\u4e0b\u8fd9\u4e2a\u65b0\u95fb", "\u5f71\u54cd\u662f\u4ec0\u4e48", "\u540e\u7eed\u770b\u4ec0\u4e48"],
+        "sources": normalize_sources(
+            [
+                {
+                    "title": news.get("title") or news.get("source") or "\u5f53\u524d\u65b0\u95fb",
+                    "url": news.get("url"),
+                    "snippet": (news.get("content") or "")[:180],
+                }
+            ],
+            max_items=1,
+        ),
+    }
+
+
+def build_identity_response(news: dict[str, Any]) -> dict[str, Any]:
+    provider_label = "DeepSeek" if provider().lower() == "deepseek" else provider()
+    source = normalize_sources(
+        [
+            {
+                "title": news.get("title") or news.get("source") or "\u5f53\u524d\u65b0\u95fb",
+                "url": news.get("url"),
+                "snippet": (news.get("content") or "")[:180],
+            }
+        ],
+        max_items=1,
+    )
+    return {
+        "answer": (
+            f"\u6211\u662f\u65b0\u95fb App \u91cc\u7684 AI \u9605\u8bfb\u52a9\u624b\uff0c"
+            f"\u5f53\u524d\u670d\u52a1\u7aef\u8c03\u7528 {provider_label} \u7684 {model_name()} \u6a21\u578b\u3002"
+            "\u6211\u4f1a\u4f18\u5148\u57fa\u4e8e\u5f53\u524d\u65b0\u95fb\u539f\u6587\u548c\u5bf9\u8bdd\u4e0a\u4e0b\u6587\u56de\u7b54\uff0c"
+            "\u53ea\u6709\u5728\u9700\u8981\u80cc\u666f\u6216\u6700\u65b0\u8fdb\u5c55\u65f6\u624d\u4f1a\u8054\u7f51\u68c0\u7d22\u3002"
+        ),
+        "suggestedQuestions": ["\u8bb2\u89e3\u4e00\u4e0b\u8fd9\u4e2a\u65b0\u95fb", "\u5f71\u54cd\u662f\u4ec0\u4e48", "\u6211\u8be5\u5173\u6ce8\u4ec0\u4e48"],
+        "sources": source,
+    }
+
+
+def normalize_sources(raw_sources: list[dict[str, Any]], max_items: int = 3) -> list[dict[str, str]]:
+    sources: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for source in raw_sources:
+        url = str(source.get("url") or source.get("link") or "").strip()
+        if not url or url in seen:
+            continue
+        title = str(source.get("title") or source.get("source") or url).strip()
+        snippet = str(source.get("snippet") or source.get("content") or source.get("raw_content") or "").strip()
+        sources.append({"title": title[:200], "url": url[:1000], "snippet": snippet[:1000]})
+        seen.add(url)
+        if len(sources) >= max_items:
+            break
+    return sources
+
+
+def strip_html(html: str) -> str:
+    if BeautifulSoup is not None:
+        soup = BeautifulSoup(html, "html.parser")
+        for tag in soup(["script", "style", "noscript"]):
+            tag.decompose()
+        return re.sub(r"\s+", " ", soup.get_text(" ", strip=True)).strip()
+    text = re.sub(r"(?is)<(script|style).*?>.*?</\1>", " ", html)
+    text = re.sub(r"(?s)<[^>]+>", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def clean_article_text(text: str) -> str:
+    text = re.sub(r"\s+", " ", text or "").strip()
+    blocked_phrases = [
+        "\u6253\u5f00app",
+        "\u6253\u5f00 app",
+        "\u4e0b\u8f7dapp",
+        "\u4e0b\u8f7d app",
+        "\u5e7f\u544a",
+        "\u70b9\u51fb\u67e5\u770b",
+        "\u5206\u4eab\u5230",
+    ]
+    if any(phrase in text.lower() for phrase in blocked_phrases):
+        return ""
+    return text
+
+
+def extract_meta_content(soup: Any, selectors: list[str]) -> str:
+    for selector in selectors:
+        value = soup.select_one(selector)
+        if value:
+            content = value.get("content") or value.get_text(" ", strip=True)
+            if content and content.strip():
+                return content.strip()
+    return ""
+
+
+def candidate_article_nodes(soup: Any, url: str) -> list[Any]:
+    url_lower = url.lower()
+    platform_selectors: list[str] = []
+    if "thepaper.cn" in url_lower:
+        platform_selectors = [".news_txt", ".index_cententWrap", ".news_part_father", ".newsdetail_content"]
+    elif "toutiao.com" in url_lower or "toutiao.cn" in url_lower:
+        platform_selectors = [".article-content", ".article__content", "#article-detail .content", ".syl-article-base"]
+    elif "zhihu.com" in url_lower:
+        platform_selectors = [".Post-RichTextContainer", ".RichContent-inner", ".Post-RichText", ".QuestionAnswer-content"]
+    elif "v2ex.com" in url_lower:
+        platform_selectors = [".topic_content", ".markdown_body", "#Main .box", ".cell"]
+    elif "geekpark.net" in url_lower or "geekpark.cn" in url_lower:
+        platform_selectors = ["article", ".article-content", ".post-content", ".content"]
+    elif "tieba.baidu.com" in url_lower:
+        platform_selectors = [".p_postlist", ".d_post_content", ".mainContent"]
+    elif "baidu.com" in url_lower:
+        platform_selectors = [".mainContent", "#article", ".article-content"]
+
+    selectors = platform_selectors + [
+        "article",
+        "[itemprop=articleBody]",
+        ".article-body",
+        ".article-content",
+        ".post-content",
+        ".entry-content",
+        ".content-body",
+        ".story-body",
+        "main .content",
+        "#content",
+        "main",
+    ]
+    nodes = []
+    for selector in selectors:
+        nodes.extend(soup.select(selector))
+    return nodes
+
+
+def score_article_node(node: Any) -> int:
+    text_len = len(clean_article_text(node.get_text(" ", strip=True)))
+    paragraph_count = len([p for p in node.select("p") if len(clean_article_text(p.get_text(" ", strip=True))) >= 20])
+    image_count = len(node.select("img"))
+    return text_len + paragraph_count * 80 + min(image_count, 8) * 40
+
+
+def normalize_image_url(raw_url: str, base_url: str) -> str:
+    raw_url = (raw_url or "").strip()
+    if not raw_url or raw_url.startswith("data:"):
+        return ""
+    return urljoin(base_url, raw_url)
+
+
+def parse_article_blocks(container: Any, base_url: str) -> list[dict[str, str]]:
+    blocks: list[dict[str, str]] = []
+    seen_text: set[str] = set()
+    seen_images: set[str] = set()
+    elements = container.select("p, h2, h3, h4, blockquote, li, img, figure")
+    if not elements:
+        elements = list(container.children)
+
+    for element in elements:
+        if not hasattr(element, "get_text"):
+            continue
+        tag = getattr(element, "name", "") or ""
+        if tag == "figure":
+            image = element.select_one("img")
+            if image is None:
+                continue
+            image_url = normalize_image_url(
+                image.get("src") or image.get("data-src") or image.get("data-original") or image.get("data-actualsrc") or "",
+                base_url,
+            )
+            if not image_url or image_url in seen_images:
+                continue
+            seen_images.add(image_url)
+            caption = element.select_one("figcaption")
+            blocks.append(
+                {
+                    "type": "image",
+                    "url": image_url,
+                    "alt": image.get("alt") or (caption.get_text(" ", strip=True) if caption else ""),
+                }
+            )
+            continue
+
+        if tag == "img":
+            image_url = normalize_image_url(
+                element.get("src") or element.get("data-src") or element.get("data-original") or element.get("data-actualsrc") or "",
+                base_url,
+            )
+            if image_url and image_url not in seen_images:
+                seen_images.add(image_url)
+                blocks.append({"type": "image", "url": image_url, "alt": element.get("alt") or ""})
+            continue
+
+        text = clean_article_text(element.get_text(" ", strip=True))
+        if len(text) < 8 or text in seen_text:
+            continue
+        seen_text.add(text)
+        blocks.append({"type": "text", "text": text})
+        if len(blocks) >= 120:
+            break
+
+    return blocks
+
+
+def fallback_article_payload(news: dict[str, Any], url: str | None, cached: bool = False) -> dict[str, Any]:
+    blocks: list[dict[str, str]] = []
+    image_url = str(news.get("imageUrl") or "").strip()
+    content = clean_article_text(str(news.get("content") or ""))
+    if image_url:
+        blocks.append({"type": "image", "url": image_url, "alt": str(news.get("title") or "")})
+    if content:
+        for paragraph in re.split(r"\n+|(?<=[。！？])\s+", content):
+            paragraph = clean_article_text(paragraph)
+            if paragraph:
+                blocks.append({"type": "text", "text": paragraph})
+    text_total = sum(len(block.get("text", "")) for block in blocks if block.get("type") == "text")
+    return {
+        "success": text_total >= 20,
+        "title": str(news.get("title") or "").strip(),
+        "source": news.get("source"),
+        "publishTime": news.get("publishTime"),
+        "url": url or news.get("url"),
+        "imageUrl": image_url or None,
+        "blocks": blocks[:80],
+        "cached": cached,
+    }
+
+
+def parse_article_detail(html: str, base_url: str, news: dict[str, Any]) -> dict[str, Any]:
+    if BeautifulSoup is None:
+        return fallback_article_payload(news, base_url)
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup(["script", "style", "noscript", "iframe", "nav", "header", "footer", "form"]):
+        tag.decompose()
+    for node in soup.select(
+        ".comment, .comments, .comment-list, .comment-area, .recommend, .related, .sidebar, "
+        ".ad, .advertisement, .app-download, .download-bar, .open-app, .launch-app, "
+        ".share-bar, .toolbar, .action-bar, .bottom-bar, [class*=download], [class*=openApp], "
+        "[class*=open-app], [class*=ad-wrapper], [class*=banner], [class*=recommend], "
+        ".article-tag, .article-footer, .feed-card, .related-news"
+    ):
+        node.decompose()
+
+    title = (
+        extract_meta_content(soup, ["meta[property='og:title']", "meta[name='twitter:title']"])
+        or (soup.select_one("h1").get_text(" ", strip=True) if soup.select_one("h1") else "")
+        or str(news.get("title") or "")
+    ).strip()
+    source = (
+        extract_meta_content(soup, ["meta[property='og:site_name']", "meta[name='source']", "meta[name='author']"])
+        or str(news.get("source") or "")
+    ).strip()
+    publish_time = (
+        extract_meta_content(
+            soup,
+            [
+                "meta[property='article:published_time']",
+                "meta[name='publishdate']",
+                "meta[name='pubdate']",
+                "meta[name='date']",
+            ],
+        )
+        or str(news.get("publishTime") or "")
+    ).strip()
+    image_url = normalize_image_url(
+        extract_meta_content(soup, ["meta[property='og:image']", "meta[name='twitter:image']"])
+        or str(news.get("imageUrl") or ""),
+        base_url,
+    )
+
+    candidates = candidate_article_nodes(soup, base_url)
+    container = max(candidates, key=score_article_node) if candidates else soup.body
+    blocks = parse_article_blocks(container, base_url) if container else []
+    if image_url and all(block.get("url") != image_url for block in blocks if block.get("type") == "image"):
+        blocks.insert(0, {"type": "image", "url": image_url, "alt": title})
+
+    text_total = sum(len(block.get("text", "")) for block in blocks if block.get("type") == "text")
+    if not blocks or text_total < 80:
+        fallback = fallback_article_payload(news, base_url)
+        if fallback["success"]:
+            return fallback
+
+    return {
+        "success": text_total >= 80,
+        "title": title,
+        "source": source or None,
+        "publishTime": publish_time or None,
+        "url": base_url,
+        "imageUrl": image_url or None,
+        "blocks": blocks[:120],
+        "cached": False,
+    }
+
+
+async def extract_article_detail(news: dict[str, Any]) -> dict[str, Any]:
+    url = str(news.get("url") or "").strip()
+    if not url or not url.startswith(("http://", "https://")):
+        return fallback_article_payload(news, url)
+
+    key = article_detail_cache_key(url)
+    cached = get_cache(key)
+    if cached:
+        cached["cached"] = True
+        return cached
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125 Mobile Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=article_fetch_timeout(), follow_redirects=True) as client:
+            response = await client.get(url, headers=headers)
+        if response.status_code >= 400:
+            return fallback_article_payload(news, url)
+        result = parse_article_detail(response.text, str(response.url), news)
+        if result.get("success"):
+            set_cache(key, result | {"cached": False})
+        return result
+    except Exception:
+        return fallback_article_payload(news, url)
+
+
+async def fetch_article_text(url: str | None) -> str:
+    if not url or not url.startswith(("http://", "https://")):
+        return ""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125 Mobile Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=article_fetch_timeout(), follow_redirects=True) as client:
+            response = await client.get(url, headers=headers)
+        if response.status_code >= 400:
+            return ""
+        return strip_html(response.text)[:8000]
+    except Exception:
+        return ""
+
+
+async def search_web_sources(news: dict[str, Any], question: str) -> list[dict[str, str]]:
+    tavily_key = setting("TAVILY_API_KEY")
+    if not web_search_enabled():
+        return []
+    query = " ".join(part for part in [news.get("title"), news.get("source"), question] if part)
+    if not tavily_key:
+        return await search_duckduckgo_sources(query)
+    payload = {
+        "api_key": tavily_key,
+        "query": query[:400],
+        "max_results": search_max_results(),
+        "include_answer": False,
+        "include_raw_content": False,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=article_fetch_timeout()) as client:
+            response = await client.post("https://api.tavily.com/search", json=payload)
+        if response.status_code >= 400:
+            return []
+        data = response.json()
+        return normalize_sources(data.get("results", []), max_items=search_max_results())
+    except Exception:
+        return []
+
+
+async def search_duckduckgo_sources(query: str) -> list[dict[str, str]]:
+    if not query.strip():
+        return []
+    url = f"https://duckduckgo.com/html/?q={quote_plus(query[:400])}"
+    headers = {"User-Agent": "Mozilla/5.0 AppleWebKit/537.36 Chrome/125 Safari/537.36"}
+    try:
+        async with httpx.AsyncClient(timeout=article_fetch_timeout(), follow_redirects=True) as client:
+            response = await client.get(url, headers=headers)
+        if response.status_code >= 400:
+            return []
+        html = response.text
+    except Exception:
+        return []
+
+    if BeautifulSoup is None:
+        return []
+
+    raw_sources: list[dict[str, str]] = []
+    soup = BeautifulSoup(html, "html.parser")
+    for result in soup.select(".result")[: search_max_results()]:
+        link = result.select_one(".result__a")
+        snippet = result.select_one(".result__snippet")
+        if not link:
+            continue
+        href = link.get("href") or ""
+        title = link.get_text(" ", strip=True)
+        raw_sources.append(
+            {
+                "title": title,
+                "url": href,
+                "snippet": snippet.get_text(" ", strip=True) if snippet else "",
+            }
+        )
+    return normalize_sources(raw_sources, max_items=search_max_results())
+
+
+def build_article_agent_messages(
+    news: dict[str, Any],
+    question: str,
+    history: list[dict[str, Any]] | None,
+    sources: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    safe_history = []
+    for turn in (history or [])[-8:]:
+        role = str(turn.get("role") or "").strip()
+        if role in {"user", "assistant"} and str(turn.get("content") or "").strip():
+            safe_history.append({"role": role, "content": str(turn.get("content"))[:700]})
+    return [
+        {
+            "role": "system",
+            "content": (
+                "\u4f60\u662f\u65b0\u95fb App \u91cc\u7684 AI \u9605\u8bfb\u52a9\u624b\u3002"
+                "\u4f60\u5fc5\u987b\u57fa\u4e8e\u5f53\u524d\u65b0\u95fb\u3001\u5bf9\u8bdd\u5386\u53f2\u548c\u5df2\u63d0\u4f9b\u7684\u6765\u6e90\u56de\u7b54\u3002"
+                "\u4e0d\u8981\u7f16\u9020\u6765\u6e90\u6216\u65b0\u95fb\u5916\u4e8b\u5b9e\u3002\u53ea\u8f93\u51fa\u4e25\u683c JSON\u3002"
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                "\u5f53\u524d\u65b0\u95fb\uff1a\n"
+                f"{compact_news(news, max_content=5500)}\n\n"
+                f"\u5bf9\u8bdd\u5386\u53f2\uff1a{json.dumps(safe_history, ensure_ascii=False)}\n\n"
+                f"\u53ef\u7528\u6765\u6e90\uff1a{json.dumps(sources, ensure_ascii=False)}\n\n"
+                f"\u7528\u6237\u95ee\u9898\uff1a{question}\n\n"
+                "\u8fd4\u56de JSON\uff1a"
+                "{\"answer\":\"\u7b80\u6d01\u56de\u7b54\","
+                "\"suggestedQuestions\":[\"\u540e\u7eed\u770b\u4ec0\u4e48\uff1f\"],"
+                "\"sources\":[{\"title\":\"\u6765\u6e90\u6807\u9898\",\"url\":\"https://...\",\"snippet\":\"\u77ed\u6458\u8981\"}]}"
+            ),
+        },
+    ]
+
+
+async def enrich_article_context(state: ArticleAgentState) -> ArticleAgentState:
+    news = dict(state["news"])
+    content = (news.get("content") or "").strip()
+    if len(content) < 900:
+        fetched = await get_article_text(news.get("url"))
+        if fetched:
+            news["content"] = (content + "\n\n" + fetched).strip() if content else fetched
+    return {"news": news}
+
+
+async def collect_article_sources(state: ArticleAgentState) -> ArticleAgentState:
+    news = state["news"]
+    sources = normalize_sources(
+        [
+            {
+                "title": news.get("title") or news.get("source") or "\u539f\u6587",
+                "url": news.get("url"),
+                "snippet": (news.get("content") or "")[:260],
+            }
+        ],
+        max_items=1,
+    )
+    if should_search_web(news, state["question"]):
+        sources.extend(await search_web_sources(news, state["question"]))
+    return {"sources": normalize_sources(sources, max_items=search_max_results() + 1)}
+
+
+async def answer_article_question(state: ArticleAgentState) -> ArticleAgentState:
+    result = parse_json_response(
+        await call_ai(
+            build_article_agent_messages(
+                news=state["news"],
+                question=state["question"],
+                history=state.get("history", []),
+                sources=state.get("sources", []),
+            ),
+            temperature=0.3,
+            json_mode=True,
+            max_tokens_override=chat_max_tokens(),
+        )
+    )
+    return {"result": result}
+
+
+def build_article_agent_graph():
+    if StateGraph is None:
+        return None
+    graph = StateGraph(ArticleAgentState)
+    graph.add_node("enrich_article", enrich_article_context)
+    graph.add_node("collect_sources", collect_article_sources)
+    graph.add_node("answer", answer_article_question)
+    graph.set_entry_point("enrich_article")
+    graph.add_edge("enrich_article", "collect_sources")
+    graph.add_edge("collect_sources", "answer")
+    graph.add_edge("answer", END)
+    return graph.compile()
+
+
+async def run_article_agent(news: dict[str, Any], question: str, history: list[dict[str, Any]]) -> dict[str, Any]:
+    if is_identity_question(question):
+        return build_identity_response(news)
+    if is_lightweight_chat_question(question):
+        return build_lightweight_chat_response(news)
+    initial_state: ArticleAgentState = {"news": news, "question": question, "history": history, "sources": []}
+    graph = build_article_agent_graph()
+    if graph is not None:
+        state = await graph.ainvoke(initial_state)
+    else:
+        state = initial_state | await enrich_article_context(initial_state)
+        state = state | await collect_article_sources(state)
+        state = state | await answer_article_question(state)
+
+    result = state.get("result", {})
+    state_sources = state.get("sources", [])
+    result_sources = result.get("sources", []) if isinstance(result.get("sources"), list) else []
+    return {
+        "answer": str(result.get("answer") or "").strip(),
+        "suggestedQuestions": [str(item).strip() for item in result.get("suggestedQuestions", []) if str(item).strip()][:3],
+        "sources": normalize_sources(result_sources + state_sources, max_items=search_max_results() + 1),
+    }
+
+
 def parse_json_response(text: str) -> dict[str, Any]:
     cleaned = text.strip()
     cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
@@ -350,13 +1032,18 @@ def parse_json_response(text: str) -> dict[str, Any]:
         raise HTTPException(status_code=502, detail="AI provider returned non-JSON content")
 
 
-async def call_ai(messages: list[dict[str, str]], temperature: float = 0.2, json_mode: bool = False) -> str:
+async def call_ai(
+    messages: list[dict[str, str]],
+    temperature: float = 0.2,
+    json_mode: bool = False,
+    max_tokens_override: int | None = None,
+) -> str:
     key = require_ai_key()
     payload = {
         "model": model_name(),
         "messages": messages,
         "temperature": temperature,
-        "max_tokens": max_tokens(),
+        "max_tokens": max_tokens_override or max_tokens(),
         "thinking": {"type": thinking_mode()},
     }
     if json_mode:
@@ -373,6 +1060,12 @@ async def call_ai(messages: list[dict[str, str]], temperature: float = 0.2, json
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "provider": provider(), "model": model_name()}
+
+
+@app.post("/api/article/extract")
+async def article_extract(request: ArticleExtractRequest, x_app_token: str | None = Header(default=None)) -> dict[str, Any]:
+    require_client_token(x_app_token)
+    return await extract_article_detail(request.news.model_dump())
 
 
 @app.post("/api/ai/summary")
@@ -451,18 +1144,21 @@ async def chat(request: ChatRequest, x_app_token: str | None = Header(default=No
 @app.post("/api/ai/chat/message")
 async def chat_message(request: ChatMessageRequest, x_app_token: str | None = Header(default=None)) -> dict[str, Any]:
     require_client_token(x_app_token)
+    news = request.news.model_dump()
     history = [turn.model_dump() for turn in request.history]
-    result = parse_json_response(
-        await call_ai(
-            build_chat_message_messages(request.news.model_dump(), request.question, history),
-            temperature=0.3,
-            json_mode=True,
-        )
-    )
-    suggestions = [str(item).strip() for item in result.get("suggestedQuestions", []) if str(item).strip()]
-    return {
-        "answer": str(result.get("answer") or "").strip(),
-        "suggestedQuestions": suggestions[:3],
+    key = chat_message_cache_key(news, request.question, history)
+    cached = get_cache(key)
+    if cached:
+        cached["cached"] = True
+        return cached
+    result = await run_article_agent(news, request.question, history)
+    response = {
+        "answer": result["answer"],
+        "suggestedQuestions": result["suggestedQuestions"],
+        "sources": result["sources"],
         "provider": provider(),
         "model": model_name(),
+        "cached": False,
     }
+    set_cache(key, response | {"cached": False})
+    return response

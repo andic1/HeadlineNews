@@ -17,6 +17,9 @@ interface NewsDao {
         offset: Int,
     ): List<NewsEntity>
 
+    @Query("SELECT * FROM news WHERE category = :cat ORDER BY position ASC")
+    suspend fun loadCategory(cat: String): List<NewsEntity>
+
     @Query("SELECT COUNT(*) FROM news WHERE category = :cat")
     suspend fun count(cat: String): Int
 

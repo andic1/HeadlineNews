@@ -13,15 +13,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -30,9 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
-import com.demo.toutiao.data.model.Categories
 import com.demo.toutiao.data.model.NewsItem
 import com.demo.toutiao.ui.theme.Bg
+import com.demo.toutiao.ui.theme.CardBg
 import com.demo.toutiao.ui.theme.TextCaption
 import com.demo.toutiao.ui.theme.TextSecondary
 import com.demo.toutiao.ui.theme.ToutiaoRed
@@ -44,12 +45,14 @@ fun NewsList(
     category: String,
     modifier: Modifier = Modifier,
     header: (@Composable () -> Unit)? = null,
+    onRefresh: suspend () -> Unit = {},
     onNewsClick: (NewsItem) -> Unit = {},
 ) {
     val pullRefreshState = rememberPullToRefreshState()
 
     LaunchedEffect(pullRefreshState.isRefreshing) {
         if (pullRefreshState.isRefreshing) {
+            onRefresh()
             items.refresh()
         }
     }
@@ -68,7 +71,7 @@ fun NewsList(
 
             refreshState is LoadState.Error && items.itemCount == 0 -> {
                 FullScreenError(
-                    message = refreshState.error.message ?: "网络异常，请稍后重试",
+                    message = refreshState.error.message ?: "\u7f51\u7edc\u5f02\u5e38\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5",
                     onRetry = { items.retry() },
                 )
             }
@@ -80,7 +83,7 @@ fun NewsList(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Bg),
-                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 6.dp),
+                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 10.dp),
                 ) {
                     if (header != null) {
                         item(key = "news-list-header") {
@@ -95,13 +98,12 @@ fun NewsList(
                         items[index]?.let { item ->
                             NewsCard(
                                 item = item,
-                                legacyStyle = category == Categories.TRENDING,
                                 onNewsClick = onNewsClick,
                             )
                         }
                     }
 
-                    item {
+                    item(key = "append-footer-$category") {
                         AppendFooter(state = items.loadState.append, onRetry = items::retry)
                     }
                 }
@@ -111,7 +113,7 @@ fun NewsList(
         PullToRefreshContainer(
             state = pullRefreshState,
             modifier = Modifier.align(Alignment.TopCenter),
-            containerColor = Bg,
+            containerColor = CardBg,
             contentColor = ToutiaoRed,
         )
     }
@@ -135,12 +137,12 @@ private fun FullScreenError(message: String, onRetry: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("加载失败", color = TextSecondary, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+        Text("\u52a0\u8f7d\u5931\u8d25", color = TextSecondary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(6.dp))
         Text(message, color = TextCaption, fontSize = 13.sp)
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(18.dp))
         TextButton(onClick = onRetry) {
-            Text("点击重试", color = ToutiaoRed, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text("\u70b9\u51fb\u91cd\u8bd5", color = ToutiaoRed, fontSize = 14.sp, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -148,7 +150,7 @@ private fun FullScreenError(message: String, onRetry: () -> Unit) {
 @Composable
 private fun FullScreenEmpty() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("暂无内容", color = TextCaption, fontSize = 14.sp)
+        Text("\u6682\u65e0\u5185\u5bb9", color = TextCaption, fontSize = 14.sp)
     }
 }
 
@@ -157,7 +159,7 @@ private fun AppendFooter(state: LoadState, onRetry: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 20.dp),
+            .padding(horizontal = 18.dp, vertical = 22.dp),
         contentAlignment = Alignment.Center,
     ) {
         when (state) {
@@ -168,15 +170,25 @@ private fun AppendFooter(state: LoadState, onRetry: () -> Unit) {
             )
 
             is LoadState.Error -> TextButton(onClick = onRetry) {
-                Text("加载失败，点此重试", color = TextSecondary, fontSize = 13.sp)
+                Text("\u52a0\u8f7d\u5931\u8d25\uff0c\u70b9\u51fb\u91cd\u8bd5", color = TextSecondary, fontSize = 13.sp)
             }
 
-            is LoadState.NotLoading -> {
-                if (state.endOfPaginationReached) {
-                    Text("没有更多内容了", color = TextCaption, fontSize = 12.sp)
-                } else {
-                    Text("加载更多", color = TextCaption, fontSize = 12.sp)
-                }
+            is LoadState.NotLoading -> Surface(
+                color = CardBg,
+                shape = RoundedCornerShape(999.dp),
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp,
+            ) {
+                Text(
+                    text = if (state.endOfPaginationReached) {
+                        "\u5df2\u7ecf\u5230\u5e95\u4e86"
+                    } else {
+                        "\u7ee7\u7eed\u4e0a\u6ed1\u52a0\u8f7d\u66f4\u591a"
+                    },
+                    color = TextCaption,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
             }
         }
     }

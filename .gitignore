@@ -26,3 +26,6 @@ Thumbs.db
 # Misc
 *.log
 *.tmp
+__pycache__/
+*.pyc
+.claude/settings.local.json

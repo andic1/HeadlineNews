@@ -11,6 +11,8 @@ import com.demo.toutiao.data.api.AiNewsRankRequest
 import com.demo.toutiao.data.api.AiNewsRankResponse
 import com.demo.toutiao.data.api.AiSummaryRequest
 import com.demo.toutiao.data.api.AiSummaryResponse
+import com.demo.toutiao.data.api.ArticleExtractRequest
+import com.demo.toutiao.data.api.ArticleExtractResponse
 import com.demo.toutiao.data.model.LayoutType
 import com.demo.toutiao.data.model.NewsItem
 import kotlinx.coroutines.test.runTest
@@ -19,7 +21,7 @@ import org.junit.Test
 
 class AiRepositoryTest {
     @Test
-    fun `news rank only sends first fifty items`() = runTest {
+    fun `news rank only sends first fifteen items`() = runTest {
         val api = FakeAiApi()
         val repo = AiRepository(api)
         val items = (1..60).map { index ->
@@ -38,9 +40,10 @@ class AiRepositoryTest {
 
         repo.dailyBrief(items)
 
-        assertEquals(50, api.newsRankRequest?.items?.size)
+        assertEquals(15, api.newsRankRequest?.items?.size)
+        assertEquals(3, api.newsRankRequest?.maxItems)
         assertEquals("新闻1", api.newsRankRequest?.items?.first()?.title)
-        assertEquals("新闻50", api.newsRankRequest?.items?.last()?.title)
+        assertEquals("新闻15", api.newsRankRequest?.items?.last()?.title)
     }
 
     @Test
@@ -126,4 +129,9 @@ private class FakeAiApi : AiApi {
         appToken: String,
         request: AiChatMessageRequest,
     ): AiChatMessageResponse = AiChatMessageResponse()
+
+    override suspend fun extractArticle(
+        appToken: String,
+        request: ArticleExtractRequest,
+    ): ArticleExtractResponse = ArticleExtractResponse()
 }

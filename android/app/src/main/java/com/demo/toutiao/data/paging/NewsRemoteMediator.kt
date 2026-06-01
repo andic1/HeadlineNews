@@ -19,6 +19,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeoutOrNull
 import retrofit2.HttpException
 import java.io.IOException
+import kotlin.random.Random
 
 @OptIn(ExperimentalPagingApi::class)
 class NewsRemoteMediator(
@@ -41,7 +42,7 @@ class NewsRemoteMediator(
         }
 
         return try {
-            val pageItems = prepareRefreshItems(fetchMergedItems())
+            val pageItems = prepareRefreshItems(fetchMergedItems(), category)
             if (pageItems.isEmpty()) {
                 return MediatorResult.Success(endOfPaginationReached = true)
             }
@@ -80,7 +81,7 @@ class NewsRemoteMediator(
                 throw ApiException(resp.code, "API error: code=${resp.code}")
             }
 
-            val source = resp.title.ifBlank { platformDisplayName(platform) }
+            val source = platformDisplayName(platform)
             resp.data
                 .filter { it.title.isNotBlank() }
                 .mapIndexed { idx, dto ->
@@ -95,12 +96,16 @@ class NewsRemoteMediator(
     }
 
     private companion object {
-        const val PLATFORM_LIMIT = 50
+        const val PLATFORM_LIMIT = 24
     }
 }
 
-internal fun prepareRefreshItems(items: List<NewsEntity>): List<NewsEntity> =
-    items.mapIndexed { index, entity -> entity.copy(position = index) }
+internal fun prepareRefreshItems(items: List<NewsEntity>, category: String = ""): List<NewsEntity> {
+    val seed = System.currentTimeMillis() xor category.hashCode().toLong()
+    return items
+        .balancedShuffle(Random(seed))
+        .mapIndexed { index, entity -> entity.copy(position = index) }
+}
 
 internal suspend fun fetchMergedNewsEntities(
     platforms: List<String>,
@@ -136,14 +141,14 @@ internal suspend fun fetchMergedNewsEntities(
         .distinctBy { it.id }
 }
 
-private const val SOURCE_TIMEOUT_MS = 4_000L
+private const val SOURCE_TIMEOUT_MS = 2_600L
 
 private fun platformDisplayName(platform: String): String = when (platform) {
-    "thepaper" -> "澎湃新闻"
-    "toutiao" -> "今日头条"
-    "zhihu" -> "知乎"
-    "geekpark" -> "极客公园"
-    "tieba" -> "贴吧"
+    "v2ex" -> "V2EX"
+    "thepaper" -> "\u6f8e\u6e43\u65b0\u95fb"
+    "zhihu" -> "\u77e5\u4e4e"
+    "geekpark" -> "\u6781\u5ba2\u516c\u56ed"
+    "tieba" -> "\u8d34\u5427"
     else -> platform
 }
 
@@ -163,4 +168,24 @@ private fun <T> List<List<T>>.roundRobin(): List<T> {
         index++
     }
     return result
+}
+
+private fun List<NewsEntity>.balancedShuffle(random: Random): List<NewsEntity> {
+    if (size <= 1) return this
+
+    val buckets = groupBy { it.source.orEmpty() }
+        .values
+        .map { bucket -> bucket.shuffled(random).toMutableList() }
+        .shuffled(random)
+
+    val mixed = mutableListOf<NewsEntity>()
+    var cursor = 0
+    while (buckets.any { it.isNotEmpty() }) {
+        val bucket = buckets[cursor % buckets.size]
+        if (bucket.isNotEmpty()) {
+            mixed += bucket.removeAt(0)
+        }
+        cursor++
+    }
+    return mixed
 }

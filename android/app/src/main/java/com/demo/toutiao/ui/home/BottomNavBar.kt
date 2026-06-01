@@ -1,6 +1,7 @@
 package com.demo.toutiao.ui.home
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,11 +19,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.PlayCircle
-import androidx.compose.material.icons.outlined.SmartDisplay
-import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material.icons.outlined.Whatshot
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -42,25 +43,26 @@ import com.demo.toutiao.ui.theme.DividerColor
 import com.demo.toutiao.ui.theme.TextCaption
 import com.demo.toutiao.ui.theme.TextPrimary
 import com.demo.toutiao.ui.theme.ToutiaoRed
+import com.demo.toutiao.ui.theme.ToutiaoRedBg
 
 @Composable
 fun BottomNavBar() {
     Column {
-        HorizontalDivider(color = DividerColor, thickness = 0.5.dp)
+        HorizontalDivider(color = DividerColor, thickness = 0.6.dp)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(CardBg)
                 .navigationBarsPadding()
-                .height(62.dp)
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .height(66.dp)
+                .padding(horizontal = 10.dp, vertical = 7.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BottomItem(Icons.Outlined.Home, "\u9996\u9875", selected = true)
-            BottomItem(Icons.Outlined.SmartDisplay, "\u89c6\u9891", selected = false)
-            BottomItem(Icons.Outlined.Storefront, "\u5546\u57ce", selected = false)
-            BottomItem(Icons.Outlined.PlayCircle, "\u653e\u6620\u5385", selected = false)
+            BottomItem(Icons.Outlined.Whatshot, "\u70ed\u699c", selected = false)
+            BottomItem(Icons.Outlined.AutoAwesome, "AI\u901f\u8bfb", selected = false)
+            BottomItem(Icons.Outlined.BookmarkBorder, "\u6536\u85cf", selected = false)
             BottomItem(Icons.Outlined.Person, "\u6211\u7684", selected = false)
         }
     }
@@ -70,27 +72,32 @@ fun BottomNavBar() {
 private fun BottomItem(icon: ImageVector, label: String, selected: Boolean) {
     val animatedTint by animateColorAsState(
         targetValue = if (selected) ToutiaoRed else TextCaption,
-        animationSpec = tween(200),
-        label = "tint",
+        animationSpec = tween(180),
+        label = "bottomTint",
     )
     val animatedTextColor by animateColorAsState(
         targetValue = if (selected) TextPrimary else TextCaption,
-        animationSpec = tween(200),
-        label = "textColor",
+        animationSpec = tween(180),
+        label = "bottomTextColor",
     )
     val pillColor by animateColorAsState(
-        targetValue = if (selected) ToutiaoRed.copy(alpha = 0.08f) else Color.Transparent,
-        animationSpec = tween(200),
-        label = "pillColor",
+        targetValue = if (selected) ToutiaoRedBg else Color.Transparent,
+        animationSpec = tween(180),
+        label = "bottomPillColor",
+    )
+    val iconSize by animateDpAsState(
+        targetValue = if (selected) 25.dp else 23.dp,
+        animationSpec = tween(180),
+        label = "bottomIconSize",
     )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
-            .widthIn(min = 54.dp)
+            .widthIn(min = 58.dp)
             .fillMaxHeight()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(pillColor)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -101,14 +108,14 @@ private fun BottomItem(icon: ImageVector, label: String, selected: Boolean) {
             imageVector = icon,
             contentDescription = label,
             tint = animatedTint,
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(iconSize),
         )
         Spacer(Modifier.height(3.dp))
         Text(
             text = label,
             color = animatedTextColor,
             fontSize = 10.sp,
-            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
             maxLines = 1,
         )
     }

@@ -82,19 +82,19 @@ fun NewsCard(
             modifier = Modifier
                 .scale(scale)
                 .shadow(
-                    elevation = 4.dp,
-                    shape = RoundedCornerShape(20.dp),
-                    ambientColor = Color(0x0C000000),
-                    spotColor = Color(0x0C000000),
+                    elevation = 7.dp,
+                    shape = RoundedCornerShape(24.dp),
+                    ambientColor = Color(0x14000000),
+                    spotColor = Color(0x10000000),
                 )
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(24.dp))
                 .background(CardBg)
-                .border(1.dp, DividerColor.copy(alpha = 0.9f), RoundedCornerShape(20.dp))
+                .border(1.dp, DividerColor.copy(alpha = 0.7f), RoundedCornerShape(24.dp))
                 .clickable(
                     interactionSource = interactionSource,
                     indication = rememberRipple(color = Color(0x10000000)),
                 ) { onNewsClick(item) }
-                .padding(14.dp),
+                .padding(16.dp),
         ) {
             if (legacyStyle) {
                 when (item.layoutType) {
@@ -334,29 +334,49 @@ private fun MetaRow(item: NewsItem) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (!item.source.isNullOrBlank()) {
-            Text(
-                text = item.source,
-                color = TextSecondary,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-            )
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(ToutiaoRed.copy(alpha = 0.08f))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Source,
+                    contentDescription = null,
+                    tint = ToutiaoRed,
+                    modifier = Modifier.size(13.dp),
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = item.source,
+                    color = ToutiaoRed,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
+            }
         }
 
         if (!displayTime.isNullOrBlank()) {
             if (!item.source.isNullOrBlank()) {
+                Spacer(Modifier.width(8.dp))
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Schedule,
+                    contentDescription = null,
+                    tint = TextCaption,
+                    modifier = Modifier.size(13.dp),
+                )
+                Spacer(Modifier.width(4.dp))
                 Text(
-                    text = " \u00b7 ",
+                    text = displayTime,
                     color = TextCaption,
                     fontSize = 11.sp,
+                    maxLines = 1,
                 )
             }
-            Text(
-                text = displayTime,
-                color = TextCaption,
-                fontSize = 11.sp,
-                maxLines = 1,
-            )
         }
     }
 }
