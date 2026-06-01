@@ -25,6 +25,7 @@ import javax.inject.Singleton
 object AppModule {
 
     private const val BASE_URL = "https://apiserver.alcex.cn"
+    private const val DEFAULT_AI_BASE_URL = "http://8.148.78.175/"
 
     @Provides
     @Singleton
@@ -67,11 +68,17 @@ object AppModule {
     fun provideAiApi(client: OkHttpClient, json: Json): AiApi {
         val contentType = "application/json".toMediaType()
         return Retrofit.Builder()
-            .baseUrl(BuildConfig.AI_BASE_URL)
+            .baseUrl(normalizeBaseUrl(BuildConfig.AI_BASE_URL, DEFAULT_AI_BASE_URL))
             .client(client)
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
             .create(AiApi::class.java)
+    }
+
+    private fun normalizeBaseUrl(value: String, fallback: String): String {
+        val trimmed = value.trim()
+        val candidate = if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) trimmed else fallback
+        return if (candidate.endsWith('/')) candidate else "$candidate/"
     }
 
     @Provides

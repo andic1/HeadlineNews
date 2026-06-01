@@ -20,7 +20,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.headline.news"
+        applicationId = "com.demo.toutiao"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

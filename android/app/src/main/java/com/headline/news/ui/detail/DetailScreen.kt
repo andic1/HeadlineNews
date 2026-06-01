@@ -119,6 +119,7 @@ private const val TEXT_QUICK_SUMMARY = "\u4e00\u53e5\u8bdd\u8bb2\u6e05\u695a"
 private const val TEXT_QUICK_IMPACT = "\u5f71\u54cd\u662f\u4ec0\u4e48"
 private const val TEXT_QUICK_FOCUS = "\u6211\u8be5\u5173\u6ce8\u4ec0\u4e48"
 private const val TEXT_OPEN_WEB_FALLBACK = "\u539f\u751f\u89e3\u6790\u5931\u8d25\uff0c\u5df2\u4f7f\u7528\u539f\u7f51\u9875\u515c\u5e95"
+private const val TEXT_ARTICLE_UNAVAILABLE = "\u6b63\u6587\u6682\u672a\u89e3\u6790\u5b8c\u6210\uff0c\u53ef\u4ee5\u4f7f\u7528\u53f3\u4e0a\u89d2\u5206\u4eab\u6216\u7a0d\u540e\u91cd\u8bd5"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("SetJavaScriptEnabled")
@@ -336,13 +337,14 @@ private fun NativeArticleView(
     LaunchedEffect(article.title) {
         onTitle(article.title)
     }
+    val visibleBlocks = remember(article.blocks) { article.blocks.filter(::isRenderableArticleBlock) }
     val scrollState = rememberScrollState()
     Column(
         modifier = modifier
             .background(Color.White)
             .verticalScroll(scrollState)
             .padding(horizontal = 20.dp)
-            .padding(top = 18.dp, bottom = 128.dp),
+            .padding(top = 18.dp, bottom = 220.dp),
     ) {
         Text(
             text = article.title,
@@ -361,8 +363,17 @@ private fun NativeArticleView(
             }
         }
         Spacer(Modifier.height(18.dp))
-        article.blocks.forEach { block ->
+        visibleBlocks.forEach { block ->
             ArticleBlockView(block)
+        }
+        if (visibleBlocks.none { it.type == "text" }) {
+            Text(
+                text = TEXT_ARTICLE_UNAVAILABLE,
+                color = TextCaption,
+                fontSize = 15.sp,
+                lineHeight = 24.sp,
+                modifier = Modifier.padding(top = 12.dp),
+            )
         }
     }
 }
@@ -406,6 +417,25 @@ private fun ArticleBlockView(block: ArticleBlock) {
             }
         }
     }
+}
+
+private fun isRenderableArticleBlock(block: ArticleBlock): Boolean {
+    if (block.type == "image") {
+        val url = block.url.orEmpty().trim()
+        return url.startsWith("http://") || url.startsWith("https://")
+    }
+
+    val text = block.text.orEmpty().trim()
+    if (text.length < 8) return false
+    if (text.all { it.isDigit() || it.isWhitespace() }) return false
+    if (Regex("^[\\d\\s.,，。:：/\\-]+$").matches(text)) return false
+    if (Regex("^\\d{1,8}$").matches(text)) return false
+    if (text.contains("var ") || text.contains("function(") || text.contains("window.")) return false
+
+    val noisyWords = listOf("打开APP", "下载APP", "相关阅读", "相关推荐", "点击加载", "版权声明")
+    if (noisyWords.any { text.contains(it) } && text.length < 40) return false
+
+    return true
 }
 
 @Composable
@@ -500,7 +530,7 @@ private fun AiDetailPanel(
             .fillMaxWidth()
             .fillMaxHeight(0.68f)
             .padding(horizontal = 12.dp, vertical = 10.dp)
-            .background(Color.White.copy(alpha = 0.96f), RoundedCornerShape(24.dp))
+            .background(Color.White, RoundedCornerShape(24.dp))
             .padding(14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

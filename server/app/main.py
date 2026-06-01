@@ -239,7 +239,7 @@ def article_cache_key(url: str) -> str:
 
 
 def article_detail_cache_key(url: str) -> str:
-    return cache_key("article-detail-v2", {"url": url})
+    return cache_key("article-detail-v3", {"url": url})
 
 
 async def get_article_text(url: str | None) -> str:
@@ -588,6 +588,22 @@ def clean_article_text(text: str) -> str:
     return text
 
 
+def is_meaningful_article_text(text: str) -> bool:
+    text = clean_article_text(text)
+    if len(text) < 8:
+        return False
+    if re.fullmatch(r"[\d\s.,，。:：/\-]+", text):
+        return False
+    if re.fullmatch(r"\d{1,8}", text):
+        return False
+    if any(marker in text for marker in ("window.", "function(", "var ", "document.")):
+        return False
+    noisy_words = ("打开APP", "下载APP", "相关阅读", "相关推荐", "点击加载", "版权声明")
+    if len(text) < 40 and any(word in text for word in noisy_words):
+        return False
+    return True
+
+
 def extract_meta_content(soup: Any, selectors: list[str]) -> str:
     for selector in selectors:
         value = soup.select_one(selector)
@@ -693,7 +709,7 @@ def parse_article_blocks(container: Any, base_url: str) -> list[dict[str, str]]:
             continue
 
         text = clean_article_text(element.get_text(" ", strip=True))
-        if len(text) < 8 or text in seen_text:
+        if not is_meaningful_article_text(text) or text in seen_text:
             continue
         seen_text.add(text)
         blocks.append({"type": "text", "text": text})
@@ -712,7 +728,7 @@ def fallback_article_payload(news: dict[str, Any], url: str | None, cached: bool
     if content:
         for paragraph in re.split(r"\n+|(?<=[。！？])\s+", content):
             paragraph = clean_article_text(paragraph)
-            if paragraph:
+            if is_meaningful_article_text(paragraph):
                 blocks.append({"type": "text", "text": paragraph})
     text_total = sum(len(block.get("text", "")) for block in blocks if block.get("type") == "text")
     return {
