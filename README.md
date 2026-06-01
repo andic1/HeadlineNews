@@ -1,124 +1,188 @@
-# 今日头条首页 Demo
+# Headline News
 
-仿今日头条首页列表的端到端 Demo：
+Headline News 是一套面向移动端交付的智能资讯应用源码，包含 Android 原生客户端和 Python AI 服务端。客户端负责新闻聚合、分页加载、缓存、原生正文阅读和 AI 交互体验；服务端负责文章解析、AI 摘要、AI 速读、对话问答、结果缓存和可选联网搜索。
 
-- **客户端**：Android（Kotlin + Compose + Hilt + Room + Paging3 + Coroutines + Coil）
-- **后端**：Ktor + Exposed + HikariCP + MySQL（utf8mb4）
-- **数据源**：[whyta.cn](https://apis.whyta.cn/) 新闻接口
-- **设计文档**：`docs/superpowers/specs/2026-05-25-toutiao-demo-design.md`
+本仓库已按交付形态整理：公开仓库只保留可运行源代码、构建脚本、服务端配置模板和交付说明，不包含 IDE 配置、构建产物、本地日志、测试样例、AI 辅助工具目录或本机密钥。
 
-## 目录结构
+## 功能概览
 
-```
-D:\toutiao-demo\
-├── backend\          Ktor 后端
-├── android\          安卓 App
-├── docs\             设计文档
+| 模块 | 能力 |
+| --- | --- |
+| 新闻聚合 | 接入 `v2ex`、`thepaper`、`zhihu`、`geekpark`、`tieba` 等资讯源，并在 4 个 Tab 中混合展示 |
+| 首页体验 | 启动预加载、Room 本地缓存、下拉刷新、分页加载、15 条首屏加载、加载更多状态提示 |
+| 原生详情 | 根据新闻 URL 抓取标题、来源、发布时间、正文段落和图片，尽量在 App 内原生排版展示 |
+| AI 速读 | 根据当前新闻池生成精选新闻和推荐理由，支持关闭、展开、收起和点击进入原新闻 |
+| AI 助手 | 针对当前新闻进行上下文问答，支持对话历史、建议问题、文章来源展示和服务端缓存 |
+| 服务端能力 | FastAPI + httpx + BeautifulSoup + LangGraph，可配置 DeepSeek/OpenAI 兼容接口和可选联网搜索 |
+
+## 技术栈
+
+| 端 | 技术 |
+| --- | --- |
+| Android | Kotlin、Jetpack Compose、Material 3、Hilt、Room、Paging 3、Retrofit、OkHttp、Coil、Jsoup |
+| Server | Python 3.11+、FastAPI、Uvicorn、httpx、Pydantic、BeautifulSoup、LangGraph、SQLite Cache |
+| 数据源 | `https://apiserver.alcex.cn/daily-hot/{platform}` |
+| AI 接口 | OpenAI-compatible Chat Completions，默认按 DeepSeek 配置 |
+
+## 仓库结构
+
+```text
+Headline-News-List-App/
+├── android/                  # Android 原生客户端
+│   ├── app/
+│   │   ├── build.gradle.kts
+│   │   └── src/main/
+│   │       ├── AndroidManifest.xml
+│   │       ├── java/com/headline/news/
+│   │       │   ├── data/     # API、Room、Repository、Paging、正文解析
+│   │       │   ├── di/       # Hilt 依赖注入
+│   │       │   ├── ui/       # 首页、详情、AI、启动页、主题
+│   │       │   ├── MainActivity.kt
+│   │       │   └── HeadlineNewsApp.kt
+│   │       └── res/
+│   ├── gradle/
+│   ├── build.gradle.kts
+│   └── settings.gradle.kts
+├── server/                   # AI 与文章解析服务
+│   ├── app/
+│   │   ├── __init__.py
+│   │   └── main.py
+│   ├── .env.example
+│   └── requirements.txt
+├── .gitignore
 └── README.md
 ```
 
-## 一、环境准备（Windows 本机）
+## Android 客户端
 
-| 工具 | 版本 | 安装 |
-|---|---|---|
-| JDK 17 | 17+（必须） | Eclipse Temurin / Oracle / Microsoft |
-| Android Studio | Hedgehog 2023.1.1+ | 自带 Android SDK 34 + JDK 17 |
-| MySQL Server | 8.x | 官网 .msi 安装包，本地端口 3306 |
-| Gradle | 不用手装 | 用项目内的 wrapper（Android Studio / Ktor plugin 自动下载） |
+### 核心入口
 
-> **重要**：后端用 JDK 17。请把环境变量 `JAVA_HOME` 指到 JDK 17，并确保 `java -version` 显示 17。
+| 文件 | 说明 |
+| --- | --- |
+| `android/app/src/main/java/com/headline/news/MainActivity.kt` | App 启动、启动动画、导航容器 |
+| `android/app/src/main/java/com/headline/news/ui/home/HomeScreen.kt` | 首页 Tab、新闻列表、AI 速读卡片 |
+| `android/app/src/main/java/com/headline/news/ui/home/HomeViewModel.kt` | 首页状态管理、预加载、刷新、AI 速读请求 |
+| `android/app/src/main/java/com/headline/news/data/repo/NewsRepository.kt` | 新闻源聚合、本地缓存、分页数据流 |
+| `android/app/src/main/java/com/headline/news/data/paging/NewsRemoteMediator.kt` | Paging 远端加载和 Room 写入 |
+| `android/app/src/main/java/com/headline/news/ui/detail/DetailScreen.kt` | 原生新闻详情、AI 摘要、AI 对话 |
+| `android/app/src/main/java/com/headline/news/data/repo/AiRepository.kt` | 客户端 AI API 封装 |
 
-## 二、初始化数据库
+### 本地配置
 
-1. 启动本机 MySQL（默认端口 3306）
-2. 用 MySQL Workbench / 命令行执行：
+客户端默认使用公开服务端地址，也可以通过本地配置覆盖。新建 `android/ai.local.properties`：
 
-   ```bat
-   mysql -u root -p < D:\toutiao-demo\backend\sql\init.sql
-   ```
-
-   会创建 `toutiao_demo` 库 + `news` / `category_cache_meta` 两张表。
-
-3. 如果你的 MySQL root 密码不是 `root`，改 `backend\src\main\resources\application.yaml` 的 `db.password`。
-
-## 三、领取 whyta APIKEY
-
-1. 打开 https://apis.whyta.cn/
-2. 任意接口文档底部有"扫码关注公众号获取 APIKEY"
-3. 拿到 key 后填到 `backend\src\main\resources\application.yaml`：
-
-   ```yaml
-   whyta:
-     apiKey: "你的真实 key"
-   ```
-
-## 四、跑后端
-
-在 `backend/` 目录下：
-
-```bat
-cd D:\toutiao-demo\backend
-gradlew.bat run
+```properties
+ai.baseUrl=https://your-api-domain.com/
+ai.appToken=your-app-token
 ```
 
-> 第一次会下载 gradle 和依赖，需要几分钟。
->
-> 如果项目还没有 gradle wrapper：在 backend 目录运行 `gradle wrapper --gradle-version 8.7` 一次（需要本机装过 gradle 8.x），之后用 `gradlew.bat` 即可。或者用 Android Studio 打开 backend 文件夹，IDE 会自动补 wrapper。
+注意：`android/ai.local.properties` 已加入 `.gitignore`，不要提交真实 Token。
 
-启动成功后访问：
+### Android 构建
 
-- http://localhost:8080/health → `ok`
-- http://localhost:8080/api/news?category=推荐 → 返回新闻 JSON
+```powershell
+cd android
+.\gradlew.bat assembleDebug
+```
 
-## 五、跑安卓 App
+项目已配置阿里云 Maven 镜像，国内网络下同步依赖会更稳定。正式给用户分发前建议：
 
-1. Android Studio 打开 `D:\toutiao-demo\android\`
-2. 等 Gradle Sync 完成（自动下载依赖）
-3. 启动一个模拟器（建议 API 34 / Pixel 7）
-4. 点 Run
+- 将 `AI_BASE_URL` 切换为 HTTPS 域名，不建议长期使用裸 IP + HTTP。
+- 使用正式签名文件生成 Release 包。
+- 根据隐私策略决定是否继续关闭备份，当前 `allowBackup=false` 更适合商业分发。
+- 后端服务端口、防火墙、安全组、域名解析和 HTTPS 证书全部配置完成后再交付安装包。
 
-模拟器通过 `10.0.2.2:8080` 访问 Windows 宿主机的后端（已在 `app/build.gradle.kts` 的 `BACKEND_BASE_URL` 配好）。
+## AI 服务端
 
-### 如果你要在真机上跑
+### 环境准备
 
-需要把 `BACKEND_BASE_URL` 改成手机能访问的地址：
+```powershell
+cd server
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
 
-1. Windows 防火墙允许 8080 端口入站
-2. 查 Windows 局域网 IP（如 `192.168.1.10`）
-3. 改 `android/app/build.gradle.kts`：
-   ```kotlin
-   buildConfigField("String", "BACKEND_BASE_URL", "\"http://192.168.1.10:8080\"")
-   ```
-4. 手机和电脑接同一个 Wi-Fi
+Linux 服务器示例：
 
-## 六、功能对照
+```bash
+cd server
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
 
-| 设计需求 | 实现位置 |
-|---|---|
-| 数据加载 | `NewsRemoteMediator` + `NewsRepository`（端到端） |
-| 卡片展示（三种样式） | `ui/home/NewsCard.kt`（TEXT_ONLY / TEXT_WITH_THUMB / BIG_IMAGE） |
-| 加载状态控制 | `ui/home/NewsList.kt`（loading / error / empty / footer） |
-| 下拉刷新 | `PullToRefreshContainer` |
-| 加载更多 | Paging3 `LoadType.APPEND` |
-| 数据库存储 | 后端 MySQL（Exposed）+ 客户端 Room |
-| 多 Tab | `HorizontalPager` + 每 Tab 独立 PagingFlow |
-| 顶栏 / 底栏 | `HomeTopBar` / `BottomNavBar`（静态壳） |
+### 服务端配置
 
-## 七、已知限制 / 范围外
+复制配置模板：
 
-- "小说" / "视频" Tab 暂时显示空（whyta 没对应接口）
-- "新时代" Tab 走 `tx/topnews`，**只有 2019-2022 历史数据**
-- 没有详情页，点卡片直接用系统浏览器打开 `originalUrl`
-- 没做收藏 / 登录 / 点赞 / 分享
-- Compose UI 测试没写
+```bash
+cp .env.example .env
+```
 
-## 八、常见问题
+核心变量：
 
-**Q: 后端起不来，连不上 MySQL？**
-A: 检查 `application.yaml` 的 `db.url` / `db.user` / `db.password`，确认本机 mysql 服务在跑。
+```env
+AI_PROVIDER=deepseek
+AI_BASE_URL=https://api.deepseek.com
+AI_API_KEY=your-api-key
+AI_MODEL=deepseek-chat
+AI_TIMEOUT_SECONDS=45
+AI_MAX_TOKENS=900
+AI_CHAT_MAX_TOKENS=520
+AI_THINKING=disabled
+AI_CACHE_TTL_SECONDS=86400
+AI_WEB_SEARCH_ENABLED=false
+AI_SEARCH_MAX_RESULTS=3
+AI_ARTICLE_FETCH_TIMEOUT_SECONDS=5
+TAVILY_API_KEY=
+```
 
-**Q: 安卓显示"加载失败"？**
-A: 先开浏览器访问 `http://10.0.2.2:8080/health`（在模拟器里）确认后端可达。Windows 防火墙可能拦了。
+说明：
 
-**Q: whyta 返回 `code != 200`？**
-A: 大概率是 APIKEY 错或没填，或者超配额。日志会打 `whyta business err: ...`。
+- `AI_API_KEY` 必须只放在服务端 `.env`，不能写进 Android 源码。
+- `AI_APP_TOKEN` 可选；配置后客户端请求必须携带 `X-App-Token`，适合公开部署时做基础访问控制。
+- `AI_WEB_SEARCH_ENABLED=true` 后，服务端会在适合的问题上补充联网搜索；未配置 `TAVILY_API_KEY` 时会尝试 DuckDuckGo 兜底。
+- 服务端使用 SQLite 文件缓存，默认路径是 `server/data/cache.sqlite3`，该目录不会提交到 Git。
+
+### 启动服务
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+健康检查：
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+生产部署建议使用 Nginx/Caddy 反向代理到 HTTPS 域名，并用 systemd、Supervisor 或容器守护进程托管 Uvicorn。
+
+## API 摘要
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| `GET` | `/health` | 服务健康检查 |
+| `POST` | `/api/article/extract` | 根据新闻 URL 提取原生正文内容 |
+| `POST` | `/api/ai/summary` | 单篇新闻摘要 |
+| `POST` | `/api/ai/daily-brief` | 今日 AI 速读 |
+| `POST` | `/api/ai/news-rank` | 新闻价值排序 |
+| `POST` | `/api/ai/chat` | 单轮新闻问答 |
+| `POST` | `/api/ai/chat/message` | 多轮新闻对话 |
+
+## 交付注意事项
+
+- 新闻源来自第三方公开接口，生产可用性取决于第三方接口稳定性、用户网络和服务端网络出口。
+- 原生正文解析依赖目标网页结构，已做通用正文抽取和失败兜底，但部分站点可能因反爬、登录墙或页面结构变化无法完整解析。
+- AI 能力依赖服务端模型供应商，建议在正式上线前配置限流、日志、异常告警和 HTTPS。
+- 当前仓库只提交源码和交付说明，真实 `.env`、签名证书、构建产物、IDE 配置、本地缓存都不应进入 GitHub。
+
+## 商业化前检查清单
+
+- 配置正式域名和 HTTPS。
+- 服务端 `.env` 填入真实 AI Key，并确认 Key 未进入 Git 历史。
+- Android `ai.local.properties` 指向正式 API 地址。
+- 使用 Release 签名重新打包。
+- 在真实手机和不同网络环境下验证首页加载、下拉刷新、加载更多、原生详情、AI 速读和 AI 对话。
+- 为生产服务增加访问日志、错误日志、基础监控和备份策略。

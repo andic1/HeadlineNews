@@ -1,21 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.demo.toutiao">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
-        android:name=".ToutiaoApp"
-        android:allowBackup="true"
+        android:name=".HeadlineNewsApp"
+        android:allowBackup="false"
         android:label="@string/app_name"
         android:usesCleartextTraffic="true"
-        android:theme="@style/Theme.ToutiaoDemo">
+        android:theme="@style/Theme.HeadlineNews">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:theme="@style/Theme.ToutiaoDemo">
+            android:theme="@style/Theme.HeadlineNews">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

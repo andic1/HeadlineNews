@@ -27,7 +27,7 @@ except ImportError:  # pragma: no cover - the endpoint falls back to inline flow
 BASE_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(BASE_DIR / ".env")
 
-app = FastAPI(title="Toutiao AI Service", version="0.1.0")
+app = FastAPI(title="Headline News AI Service", version="0.1.0")
 DB_PATH = BASE_DIR / "data" / "cache.sqlite3"
 UNKNOWN_TEXT = "\u672a\u77e5"
 NONE_TEXT = "\u65e0"
@@ -121,7 +121,7 @@ def provider() -> str:
 
 
 def model_name() -> str:
-    return setting("AI_MODEL", "deepseek-v4-flash") or "deepseek-v4-flash"
+    return setting("AI_MODEL", "deepseek-chat") or "deepseek-chat"
 
 
 def base_url() -> str:

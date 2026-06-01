@@ -16,16 +16,15 @@ val aiLocalProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.demo.toutiao"
+    namespace = "com.headline.news"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.demo.toutiao"
+        applicationId = "com.headline.news"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField(
             "String",
             "AI_BASE_URL",
@@ -66,7 +65,6 @@ android {
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.06.00")
     implementation(composeBom)
-    androidTestImplementation(composeBom)
 
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.activity:activity-compose:1.9.0")
@@ -105,15 +103,9 @@ dependencies {
     // Coil
     implementation("io.coil-kt:coil-compose:2.6.0")
 
-    // Jsoup - HTML 正文提取
+    // Jsoup - HTML article extraction
     implementation("org.jsoup:jsoup:1.17.2")
 
     // Navigation Compose
     implementation("androidx.navigation:navigation-compose:2.7.7")
-
-    // Tests
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
-    testImplementation("app.cash.turbine:turbine:1.1.0")
-    testImplementation("io.mockk:mockk:1.13.11")
 }

@@ -1,4 +1,4 @@
 # keep kotlinx.serialization
--keep,includedescriptorclasses class com.demo.toutiao.**$$serializer { *; }
--keepclassmembers class com.demo.toutiao.** { *** Companion; }
--keepclasseswithmembers class com.demo.toutiao.** { kotlinx.serialization.KSerializer serializer(...); }
+-keep,includedescriptorclasses class com.headline.news.**$$serializer { *; }
+-keepclassmembers class com.headline.news.** { *** Companion; }
+-keepclasseswithmembers class com.headline.news.** { kotlinx.serialization.KSerializer serializer(...); }

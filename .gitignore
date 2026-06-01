@@ -7,6 +7,9 @@ build/
 .idea/
 *.iml
 local.properties
+.agents/
+.claude/
+.codegraph/
 
 # Android
 android/app/build/
@@ -14,8 +17,12 @@ android/build/
 android/.gradle/
 android/local.properties
 android/ai.local.properties
+android/.idea/
 
 # Backend
+server/.env
+server/.venv/
+server/data/
 backend/build/
 backend/.gradle/
 
