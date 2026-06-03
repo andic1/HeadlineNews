@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -55,7 +55,7 @@ fun HomeTopBar() {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Outlined.AutoAwesome,
+                imageVector = Icons.AutoMirrored.Outlined.Article,
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(21.dp),
@@ -64,14 +64,13 @@ fun HomeTopBar() {
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "AI \u5934\u6761",
+                text = "\u667a\u80fd\u8d44\u8baf",
                 color = TextPrimary,
                 fontSize = 21.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = (-0.4).sp,
             )
             Text(
-                text = "\u6df7\u5408\u70ed\u699c\u00b7\u667a\u80fd\u901f\u8bfb",
+                text = "\u70ed\u70b9\u805a\u5408\u00b7\u6bcf\u65e5\u901f\u8bfb",
                 color = TextCaption,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,

@@ -10,10 +10,10 @@ sealed interface AiUiState<out T> {
 fun Throwable.toUserMessage(): String {
     val raw = message.orEmpty()
     return when {
-        raw.contains("401") -> "AI 服务校验失败，请检查本机配置"
-        raw.contains("503") || raw.contains("AI_API_KEY") -> "AI 服务还没有配置好模型 Key"
-        raw.contains("timeout", ignoreCase = true) -> "AI 响应超时，请稍后再试"
-        raw.isNotBlank() -> "AI 暂时不可用：$raw"
-        else -> "AI 暂时不可用，请稍后再试"
+        raw.contains("401") -> "智能服务校验失败，请检查本机配置"
+        raw.contains("503") || raw.contains("AI_API_KEY") -> "智能服务还没有配置好模型 Key"
+        raw.contains("timeout", ignoreCase = true) -> "智能服务响应超时，请稍后再试"
+        raw.isNotBlank() -> "智能服务暂时不可用：$raw"
+        else -> "智能服务暂时不可用，请稍后再试"
     }
 }

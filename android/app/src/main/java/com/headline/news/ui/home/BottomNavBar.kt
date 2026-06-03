@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
@@ -61,7 +61,7 @@ fun BottomNavBar() {
         ) {
             BottomItem(Icons.Outlined.Home, "\u9996\u9875", selected = true)
             BottomItem(Icons.Outlined.Whatshot, "\u70ed\u699c", selected = false)
-            BottomItem(Icons.Outlined.AutoAwesome, "AI\u901f\u8bfb", selected = false)
+            BottomItem(Icons.AutoMirrored.Outlined.Article, "\u901f\u8bfb", selected = false)
             BottomItem(Icons.Outlined.BookmarkBorder, "\u6536\u85cf", selected = false)
             BottomItem(Icons.Outlined.Person, "\u6211\u7684", selected = false)
         }

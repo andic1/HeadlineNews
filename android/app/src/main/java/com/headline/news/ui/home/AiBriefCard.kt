@@ -24,7 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -74,15 +74,9 @@ fun AiBriefCard(
         modifier = modifier
             .padding(horizontal = 12.dp, vertical = 8.dp)
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(Color(0xFFFFF4EE), Color(0xFFF3FAFF)),
-                    start = Offset.Zero,
-                    end = Offset(760f, 320f),
-                ),
-            )
-            .border(1.dp, BrandRed.copy(alpha = 0.10f), RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(22.dp))
+            .background(CardBg)
+            .border(1.dp, Color(0x1A171512), RoundedCornerShape(22.dp))
             .clickable { isExpanded = !isExpanded }
             .animateContentSize(animationSpec = tween(220))
             .padding(16.dp),
@@ -136,7 +130,7 @@ private fun AiBriefHeader(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Outlined.AutoAwesome,
+                imageVector = Icons.AutoMirrored.Outlined.Article,
                 contentDescription = null,
                 tint = BrandRed,
                 modifier = Modifier.size(24.dp),
@@ -148,7 +142,7 @@ private fun AiBriefHeader(
                 .weight(1f),
         ) {
             Text(
-                text = "AI \u4eca\u65e5\u901f\u8bfb",
+                text = "\u4eca\u65e5\u901f\u8bfb",
                 color = TextPrimary,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Black,
@@ -156,7 +150,7 @@ private fun AiBriefHeader(
             )
             Text(
                 text = if (isExpanded) {
-                    "\u4ece\u5f53\u524d\u65b0\u95fb\u6d41\u91cc\u63d0\u70bc\u771f\u6b63\u503c\u5f97\u770b\u7684\u91cd\u70b9"
+                    "\u4ece\u5f53\u524d\u65b0\u95fb\u6d41\u91cc\u6311\u51fa\u503c\u5f97\u770b\u7684\u91cd\u70b9"
                 } else {
                     "\u5df2\u6536\u8d77\uff0c\u70b9\u51fb\u5c55\u5f00"
                 },
@@ -168,12 +162,12 @@ private fun AiBriefHeader(
         }
         HeaderIconButton(
             icon = if (isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-            contentDescription = if (isExpanded) "\u6536\u8d77 AI \u901f\u8bfb" else "\u5c55\u5f00 AI \u901f\u8bfb",
+            contentDescription = if (isExpanded) "\u6536\u8d77\u4eca\u65e5\u901f\u8bfb" else "\u5c55\u5f00\u4eca\u65e5\u901f\u8bfb",
             onClick = onToggle,
         )
         HeaderIconButton(
             icon = Icons.Outlined.Close,
-            contentDescription = "\u5173\u95ed AI \u901f\u8bfb",
+            contentDescription = "\u5173\u95ed\u4eca\u65e5\u901f\u8bfb",
             onClick = onDismiss,
         )
     }

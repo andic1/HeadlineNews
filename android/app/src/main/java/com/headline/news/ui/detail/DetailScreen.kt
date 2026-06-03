@@ -44,7 +44,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -101,17 +101,17 @@ private const val TEXT_BACK = "\u8fd4\u56de"
 private const val TEXT_SHARE = "\u5206\u4eab"
 private const val TEXT_SHARE_LINK = "\u5206\u4eab\u94fe\u63a5"
 private const val TEXT_MORE = "\u66f4\u591a"
-private const val TEXT_AI_ASSISTANT = "AI \u9605\u8bfb\u52a9\u624b"
+private const val TEXT_AI_ASSISTANT = "\u9605\u8bfb\u52a9\u624b"
 private const val TEXT_NATIVE_READING = "\u5df2\u8f6c\u6210\u539f\u751f\u9605\u8bfb\uff0c\u6b63\u6587\u52a0\u8f7d\u66f4\u5feb"
 private const val TEXT_AI_LOADING = "\u6b63\u5728\u7406\u89e3\u8fd9\u7bc7\u65b0\u95fb..."
-private const val TEXT_AI_RETRY = "AI \u6682\u65f6\u4e0d\u53ef\u7528\uff0c\u70b9\u5f00\u53ef\u91cd\u8bd5"
+private const val TEXT_AI_RETRY = "\u9605\u8bfb\u52a9\u624b\u6682\u65f6\u4e0d\u53ef\u7528\uff0c\u70b9\u5f00\u53ef\u91cd\u8bd5"
 private const val TEXT_AI_OPEN = "\u70b9\u5f00\u67e5\u770b\u901f\u8bfb\u548c\u7ee7\u7eed\u8ffd\u95ee"
 private const val TEXT_COLLAPSE = "\u6536\u8d77"
 private const val TEXT_CLOSE = "\u5173\u95ed"
 private const val TEXT_EXPAND = "\u5c55\u5f00"
-private const val TEXT_SUMMARY_LOADING = "AI \u6b63\u5728\u63d0\u70bc\u8fd9\u7bc7\u65b0\u95fb..."
+private const val TEXT_SUMMARY_LOADING = "\u6b63\u5728\u63d0\u70bc\u8fd9\u7bc7\u65b0\u95fb..."
 private const val TEXT_RETRY = "\u91cd\u8bd5"
-private const val TEXT_THINKING = "AI \u6b63\u5728\u601d\u8003..."
+private const val TEXT_THINKING = "\u6b63\u5728\u6574\u7406\u56de\u7b54..."
 private const val TEXT_ASK_PLACEHOLDER = "\u95ee\u95ee\u8fd9\u7bc7\u65b0\u95fb"
 private const val TEXT_SEND = "\u53d1\u9001"
 private const val TEXT_REFERENCE = "\u53c2\u8003\u6765\u6e90"
@@ -449,13 +449,13 @@ private fun AiAssistantReopenButton(onOpen: () -> Unit, modifier: Modifier = Mod
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = Icons.Outlined.AutoAwesome,
+            imageVector = Icons.AutoMirrored.Outlined.Article,
             contentDescription = null,
             tint = Color.White,
             modifier = Modifier.size(18.dp),
         )
         Text(
-            text = "AI",
+            text = "\u901f\u8bfb",
             color = Color.White,
             fontWeight = FontWeight.Bold,
             fontSize = 13.sp,
@@ -481,7 +481,7 @@ private fun AiAssistantCollapsedBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = Icons.Outlined.AutoAwesome,
+            imageVector = Icons.AutoMirrored.Outlined.Article,
             contentDescription = null,
             tint = BrandRed,
             modifier = Modifier.size(20.dp),
@@ -535,7 +535,7 @@ private fun AiDetailPanel(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = Icons.Outlined.AutoAwesome,
+                imageVector = Icons.AutoMirrored.Outlined.Article,
                 contentDescription = null,
                 tint = BrandRed,
                 modifier = Modifier.size(20.dp),
