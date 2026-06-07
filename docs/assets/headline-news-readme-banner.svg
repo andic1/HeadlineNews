@@ -1,0 +1,107 @@
+<svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Headline News README banner</title>
+  <desc id="desc">A visual banner showing a native Android news app connected to an AI service.</desc>
+  <defs>
+    <linearGradient id="bg" x1="54" y1="12" x2="1128" y2="462" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#151515"/>
+      <stop offset="0.45" stop-color="#221F20"/>
+      <stop offset="1" stop-color="#3A1416"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#F94A3D"/>
+      <stop offset="1" stop-color="#FFB84C"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#18C8B8"/>
+      <stop offset="1" stop-color="#47A7FF"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="420" rx="34" fill="url(#bg)"/>
+  <path d="M44 64C186 14 305 39 440 95C578 152 678 143 814 92C944 43 1058 45 1158 92" stroke="#FF6A4A" stroke-opacity="0.22" stroke-width="2"/>
+  <path d="M43 343C170 282 313 285 438 338C573 395 695 392 825 330C952 270 1067 276 1156 331" stroke="#18C8B8" stroke-opacity="0.18" stroke-width="2"/>
+
+  <g opacity="0.16">
+    <circle cx="108" cy="98" r="5" fill="#FFFFFF"/>
+    <circle cx="172" cy="74" r="3" fill="#FFFFFF"/>
+    <circle cx="1047" cy="88" r="4" fill="#FFFFFF"/>
+    <circle cx="1102" cy="139" r="3" fill="#FFFFFF"/>
+    <circle cx="994" cy="333" r="5" fill="#FFFFFF"/>
+    <circle cx="264" cy="348" r="4" fill="#FFFFFF"/>
+  </g>
+
+  <g transform="translate(80 70)">
+    <rect x="0" y="0" width="326" height="280" rx="30" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.14"/>
+    <text x="0" y="44" fill="#FFFFFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="44" font-weight="800">Headline News</text>
+    <text x="2" y="84" fill="#F4EDEA" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="500">Native Android news reader</text>
+    <text x="2" y="116" fill="#B9B2AE" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">Multi-source feed · Room cache · Paging 3</text>
+    <text x="2" y="144" fill="#B9B2AE" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">Article extraction · AI brief · Chat Q&amp;A</text>
+
+    <g transform="translate(0 184)">
+      <rect width="112" height="34" rx="17" fill="url(#accent)"/>
+      <path d="M24 12H42M24 18H52M24 24H46" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+      <text x="64" y="22" fill="#FFFFFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">News</text>
+    </g>
+    <g transform="translate(128 184)">
+      <rect width="104" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.1" stroke="#FFFFFF" stroke-opacity="0.18"/>
+      <circle cx="25" cy="17" r="8" fill="url(#teal)"/>
+      <path d="M25 11V23M19 17H31" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+      <text x="48" y="22" fill="#FFFFFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">AI</text>
+    </g>
+    <g transform="translate(248 184)">
+      <rect width="78" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.1" stroke="#FFFFFF" stroke-opacity="0.18"/>
+      <path d="M23 10L33 17L23 24" stroke="#FFB84C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="43" y="22" fill="#FFFFFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">API</text>
+    </g>
+  </g>
+
+  <g transform="translate(468 44)" filter="url(#shadow)">
+    <rect width="256" height="332" rx="34" fill="#0E0F10" stroke="#3C3F42" stroke-width="2"/>
+    <rect x="14" y="18" width="228" height="296" rx="24" fill="#F7F8FA"/>
+    <rect x="42" y="31" width="70" height="7" rx="3.5" fill="#1B1B1D" fill-opacity="0.14"/>
+    <circle cx="214" cy="35" r="5" fill="#1B1B1D" fill-opacity="0.14"/>
+    <rect x="30" y="56" width="196" height="38" rx="13" fill="#FFFFFF"/>
+    <text x="44" y="80" fill="#18191B" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="800">智能资讯</text>
+    <rect x="30" y="106" width="196" height="32" rx="16" fill="#FFF0EE"/>
+    <circle cx="48" cy="122" r="6" fill="#F94A3D"/>
+    <text x="64" y="127" fill="#C4382F" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">AI brief: top stories</text>
+    <rect x="30" y="154" width="196" height="54" rx="14" fill="#FFFFFF"/>
+    <rect x="44" y="170" width="116" height="8" rx="4" fill="#1F2933" fill-opacity="0.78"/>
+    <rect x="44" y="186" width="146" height="7" rx="3.5" fill="#1F2933" fill-opacity="0.22"/>
+    <rect x="44" y="198" width="80" height="7" rx="3.5" fill="#1F2933" fill-opacity="0.18"/>
+    <rect x="178" y="168" width="34" height="28" rx="9" fill="#FFB84C" fill-opacity="0.86"/>
+    <rect x="30" y="222" width="196" height="54" rx="14" fill="#FFFFFF"/>
+    <rect x="44" y="238" width="136" height="8" rx="4" fill="#1F2933" fill-opacity="0.78"/>
+    <rect x="44" y="254" width="124" height="7" rx="3.5" fill="#1F2933" fill-opacity="0.22"/>
+    <rect x="44" y="266" width="94" height="7" rx="3.5" fill="#1F2933" fill-opacity="0.18"/>
+    <rect x="178" y="236" width="34" height="28" rx="9" fill="#18C8B8" fill-opacity="0.86"/>
+  </g>
+
+  <g transform="translate(790 72)" filter="url(#shadow)">
+    <rect width="318" height="96" rx="24" fill="#FFFFFF" fill-opacity="0.1" stroke="#FFFFFF" stroke-opacity="0.16"/>
+    <rect x="22" y="22" width="52" height="52" rx="16" fill="url(#teal)"/>
+    <path d="M38 51C44 37 58 37 64 51M36 55H66" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+    <text x="94" y="43" fill="#FFFFFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="800">FastAPI AI Service</text>
+    <text x="94" y="68" fill="#CFC9C6" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">summary · ranking · chat · cache</text>
+  </g>
+
+  <g transform="translate(790 194)" filter="url(#shadow)">
+    <rect width="318" height="130" rx="24" fill="#FFFFFF" fill-opacity="0.1" stroke="#FFFFFF" stroke-opacity="0.16"/>
+    <text x="24" y="38" fill="#FFFFFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="800">Pipeline</text>
+    <g transform="translate(24 58)">
+      <rect width="72" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.12"/>
+      <text x="20" y="22" fill="#FFFFFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">Feed</text>
+      <path d="M88 17H118" stroke="#FFB84C" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M113 11L120 17L113 23" stroke="#FFB84C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="128" width="72" height="34" rx="17" fill="#FFFFFF" fill-opacity="0.12"/>
+      <text x="146" y="22" fill="#FFFFFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">Parse</text>
+      <path d="M208 17H238" stroke="#18C8B8" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M233 11L240 17L233 23" stroke="#18C8B8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="248" width="46" height="34" rx="17" fill="url(#accent)"/>
+      <text x="262" y="22" fill="#FFFFFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="800">AI</text>
+    </g>
+  </g>
+</svg>
