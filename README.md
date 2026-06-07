@@ -5,7 +5,7 @@
 <h1 align="center">Headline News</h1>
 
 <p align="center">
-  一套面向移动端交付的智能资讯应用源码：Android 原生客户端 + Python AI 服务端。
+  一套面向移动端交付的智能资讯应用：Android 原生客户端 + Python AI 服务端。
 </p>
 
 <p align="center">
